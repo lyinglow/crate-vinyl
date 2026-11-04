@@ -209,7 +209,8 @@ export async function refreshMarket(rec) {
 }
 
 export async function ensureDetail(rec) {
-  if (rec.detail || rec.source !== 'discogs' || !rec.releaseId) return rec;
+  if (rec.source !== 'discogs' || !rec.releaseId) return rec;
+  if (rec.detail && Array.isArray(rec.videos)) return rec;
   const rel = await D.release(rec.releaseId, 0);
   M.applyRelease(rec, rel, state.settings.currency);
   await saveRecord(rec, { quiet: true });

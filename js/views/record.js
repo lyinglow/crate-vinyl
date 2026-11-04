@@ -159,7 +159,11 @@ export function mount(root, args) {
   function drawListen() {
     const el = $('#r-listen', root);
     const vids = rec.videos || [];
-    if (!vids.length) { el.innerHTML = ''; return; }
+    if (!vids.length) {
+      el.innerHTML = rec.source === 'discogs' && rec.detail && Array.isArray(rec.videos)
+        ? '<h3 class="sec">Listen</h3><p class="muted">Discogs has no videos for this release.</p>' : '';
+      return;
+    }
     el.innerHTML = `<h3 class="sec">Listen</h3>
       <div class="rows">${vids.map((v) => `<button class="play-row" data-play="${esc(v.id)}"><span class="pi">${icon('play', 18)}</span><span class="pt">${esc(v.title)}</span><span class="pd">${esc(M.clock(v.duration))}</span></button>`).join('')}</div>
       <div id="player"></div>
@@ -260,7 +264,7 @@ export function mount(root, args) {
   let alive = true;
   (async () => {
     try {
-      if (rec.source === 'discogs' && rec.releaseId && !rec.detail) {
+      if (rec.source === 'discogs' && rec.releaseId && !(rec.detail && Array.isArray(rec.videos))) {
         await ensureDetail(rec);
         if (!alive) return;
         drawGallery(); drawHead(); drawListen(); drawTracks(); drawDetails(); drawValue();
