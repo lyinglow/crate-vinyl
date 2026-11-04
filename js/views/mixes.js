@@ -192,6 +192,29 @@ export function openAddToMix(rec, track) {
   draw();
 }
 
+// Several tracks at once, for example everything on the Loved tracks page.
+export function openAddManyToMix(items) {
+  const s = openSheet({ title: `Add ${items.length} track${items.length === 1 ? '' : 's'} to a mix`, body: '<div id="am"></div>' });
+  async function addTo(mix) {
+    let n = 0;
+    for (const { rec, track } of items) if (await X.addTrack(mix.id, rec, track)) n++;
+    const skipped = items.length - n;
+    toast(`Added ${n} to ${mix.name}${skipped ? `. ${skipped} already there.` : ''}`);
+    s.close();
+  }
+  const box = s.el.querySelector('#am');
+  box.innerHTML = `
+    <div class="rows">${state.mixes.map((m) => `<button class="pick-row" data-mix="${m.id}"><span>${esc(m.name)}<small>${m.tracks.length} track${m.tracks.length === 1 ? '' : 's'}</small></span><span>${icon('plus', 20)}</span></button>`).join('')}</div>
+    <form id="nm3" style="margin-top:16px"><label class="field"><span>Or start a new mix</span><input name="name" placeholder="Mix name" autocomplete="off"></label><button class="btn" type="submit">Create and add</button></form>`;
+  box.querySelectorAll('[data-mix]').forEach((b) => { b.onclick = () => addTo(X.getMix(b.dataset.mix)); });
+  box.querySelector('#nm3').onsubmit = async (e) => {
+    e.preventDefault();
+    const name = e.target.name.value.trim();
+    if (!name) { toast('Give the mix a name.'); return; }
+    addTo(await X.createMix(name));
+  };
+}
+
 // From a mix: search your records, then pick tracks.
 function openCratePicker(mixId) {
   const s = openSheet({ title: 'Add from my crate', body: '<div id="cp"></div>' });

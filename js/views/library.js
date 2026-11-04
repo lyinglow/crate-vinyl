@@ -3,6 +3,7 @@ import { state, saveSettings, subscribe } from '../store.js';
 import * as M from '../model.js';
 import { esc, cover, icon, openSheet, debounce, hydratePhotos, toast, $ } from '../ui.js';
 import { exportBackup } from '../exporter.js';
+import { lovedCount } from './loved.js';
 
 // Kept while the app is open, so coming back from a record keeps your place.
 const v = { q: '', status: 'all', genre: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added', count: 120, scroll: 0 };
@@ -15,6 +16,10 @@ export function mount(root) {
   root.innerHTML = `
     <div class="page">
       <div class="largetitle"><h1>Library</h1><p class="sub" id="lib-count"></p></div>
+      <div class="shortcuts">
+        <a class="short" href="#/mixes">${icon('list', 20)}<span>Mixes</span><em id="n-mixes"></em></a>
+        <a class="short" href="#/loved">${icon('heart', 20)}<span>Loved tracks</span><em id="n-loved"></em></a>
+      </div>
       <div id="lib-banner"></div>
       <div class="toolbar">
         <label class="search">${icon('search', 18)}<input id="q" type="search" placeholder="Search your records" autocomplete="off" autocapitalize="off" enterkeyhint="search" value="${esc(v.q)}"></label>
@@ -23,7 +28,6 @@ export function mount(root) {
       </div>
       <div class="chips scroll" id="status-chips">
         ${[['all', 'All'], ['keeping', 'Keeping'], ['for_sale', 'For sale'], ['sold', 'Sold']].map(([k, l]) => `<button class="chip${v.status === k ? ' on' : ''}" data-status="${k}">${l}</button>`).join('')}
-        <a class="chip" href="#/mixes">Mixes</a>
       </div>
       <div id="lib-body"></div>
     </div>`;
@@ -75,6 +79,8 @@ export function mount(root) {
     list = M.sortRecords(M.filterRecords(all, v), v.sort);
     const n = all.length;
     $('#lib-count', root).textContent = n === 0 ? '' : list.length === n ? `${n.toLocaleString('en-GB')} record${n === 1 ? '' : 's'}` : `${list.length.toLocaleString('en-GB')} of ${n.toLocaleString('en-GB')}`;
+    $('#n-mixes', root).textContent = state.mixes.length || '';
+    $('#n-loved', root).textContent = lovedCount() || '';
     $('#btn-view', root).innerHTML = icon(state.settings.view === 'list' ? 'grid' : 'list', 22);
     $('#filter-dot', root).hidden = !filtersOn() && v.sort === 'added';
     if (observer) observer.disconnect();

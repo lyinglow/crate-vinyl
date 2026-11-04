@@ -10,6 +10,7 @@ import * as sell from './views/sell.js';
 import * as value from './views/value.js';
 import * as settings from './views/settings.js';
 import * as mixes from './views/mixes.js';
+import * as loved from './views/loved.js';
 
 const views = {
   library,
@@ -19,9 +20,10 @@ const views = {
   value,
   settings,
   mixes,
+  loved,
   welcome: { mount: settings.mountWelcome },
 };
-const tabOf = { record: 'library', mixes: 'library', welcome: 'settings' };
+const tabOf = { record: 'library', mixes: 'library', loved: 'library', welcome: 'settings' };
 
 const view = document.getElementById('view');
 const tabs = document.getElementById('tabs');

@@ -1,6 +1,6 @@
 // Keeps the app itself on the phone so it opens fast and works offline.
 // Your records are not here. They live in the phone's database.
-const VERSION = 'crate-1.3.0';
+const VERSION = 'crate-1.4.0';
 const FILES = [
   './',
   'index.html',
@@ -23,6 +23,7 @@ const FILES = [
   'js/views/value.js',
   'js/views/settings.js',
   'js/views/mixes.js',
+  'js/views/loved.js',
   'vendor/zxing.min.js',
   'icons/icon.svg',
   'icons/apple-touch-icon.png',
