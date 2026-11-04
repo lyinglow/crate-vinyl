@@ -34,3 +34,5 @@ Today the app is the master copy. It sends changes to Discogs, but Discogs edits
 - Pull in real sale prices from your Discogs orders, instead of using the asking price.
 - Read the catalogue number from a photo of the label, to save typing. Not reliable, so keep it as a suggestion you confirm.
 - Offer to remove a record from the Discogs collection when it sells, without asking each time.
+
+_Last checked: auto deploy test._
