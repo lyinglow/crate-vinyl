@@ -404,3 +404,13 @@ textarea { resize: vertical; min-height: 84px; }
 
 .card > .btn.small { margin-top: 10px; }
 body.has-bar .toast { top: calc(var(--st) + 46px); }
+
+/* ---------- listen ---------- */
+.play-row { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; width: 100%; text-align: left; border: 0; border-bottom: 0.5px solid var(--line); background: none; padding: 11px 0; font-size: 15px; }
+.play-row .pi { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--bg3); color: var(--fg); }
+.play-row.on .pi { background: var(--btn); color: var(--btnfg); }
+.play-row .pt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.play-row .pd { color: var(--fg2); font-variant-numeric: tabular-nums; font-size: 13px; }
+.player { position: relative; aspect-ratio: 16 / 9; margin-top: 12px; border-radius: 14px; overflow: hidden; background: #000; }
+.player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.link .ic { display: inline-block; vertical-align: -2px; }

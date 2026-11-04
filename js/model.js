@@ -151,6 +151,22 @@ export function fromVersion(v, base) {
   };
 }
 
+export function youtubeId(uri) {
+  try {
+    const u = new URL(uri);
+    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).slice(0, 20);
+    return u.searchParams.get('v') || '';
+  } catch {
+    return '';
+  }
+}
+
+export function clock(sec) {
+  const s = Math.round(Number(sec) || 0);
+  if (!s) return '';
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
 // Fill a record from the full Discogs release page.
 export function applyRelease(rec, rel, currency) {
   rec.artist = artistString(rel.artists) || rec.artist;
@@ -185,6 +201,7 @@ export function applyRelease(rec, rel, currency) {
     const b = rec.identifiers.find((i) => i.type === 'Barcode');
     if (b) rec.barcode = String(b.value).replace(/\D/g, '');
   }
+  rec.videos = (rel.videos || []).map((v) => ({ id: youtubeId(v.uri), title: v.title || '', duration: v.duration || 0 })).filter((v) => v.id).slice(0, 12);
   rec.releaseNotes = (rel.notes || '').slice(0, 2500);
   rec.community = rel.community ? { have: rel.community.have, want: rel.community.want } : rec.community || null;
   rec.masterId = rel.master_id || rec.masterId || null;

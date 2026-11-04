@@ -29,6 +29,7 @@ Today the app is the master copy. It sends changes to Discogs, but Discogs edits
 
 ## Smaller ideas
 
+- Voice notes on a record: hold a button, say it, and it saves with the record. Works on iPhone and stays on the phone.
 - Change a listing's price from inside the app. Today you edit it on Discogs.
 - Pull in real sale prices from your Discogs orders, instead of using the asking price.
 - Read the catalogue number from a photo of the label, to save typing. Not reliable, so keep it as a suggestion you confirm.

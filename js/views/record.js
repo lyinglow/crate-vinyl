@@ -25,6 +25,7 @@ export function mount(root, args) {
       <section class="card" id="r-cond"></section>
       <section class="card" id="r-value"></section>
       <section id="r-notes"></section>
+      <section id="r-listen"></section>
       <section id="r-tracks"></section>
       <section id="r-details"></section>
       <section id="r-actions"></section>
@@ -154,6 +155,28 @@ export function mount(root, args) {
     });
   }
 
+  // ------------------------------------------------------ listen
+  function drawListen() {
+    const el = $('#r-listen', root);
+    const vids = rec.videos || [];
+    if (!vids.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<h3 class="sec">Listen</h3>
+      <div class="rows">${vids.map((v) => `<button class="play-row" data-play="${esc(v.id)}"><span class="pi">${icon('play', 18)}</span><span class="pt">${esc(v.title)}</span><span class="pd">${esc(M.clock(v.duration))}</span></button>`).join('')}</div>
+      <div id="player"></div>
+      <p class="hint-text">Videos come from the Discogs page for this release. They may not be this exact pressing.</p>`;
+    el.onclick = (e) => {
+      const b = e.target.closest('[data-play]');
+      if (!b) return;
+      const box = $('#player', el);
+      const id = b.dataset.play;
+      const same = box.dataset.id === id;
+      el.querySelectorAll('.play-row').forEach((r) => r.classList.toggle('on', !same && r === b));
+      if (same) { box.innerHTML = ''; box.dataset.id = ''; return; }
+      box.dataset.id = id;
+      box.innerHTML = `<div class="player"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?playsinline=1&autoplay=1" title="Video player" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div><p class="hint-text"><a class="link" href="https://www.youtube.com/watch?v=${encodeURIComponent(id)}" target="_blank" rel="noopener">Open in YouTube ${icon('external', 13)}</a></p>`;
+    };
+  }
+
   // ------------------------------------------------------ tracks
   function drawTracks() {
     const el = $('#r-tracks', root);
@@ -224,7 +247,7 @@ export function mount(root, args) {
   }
 
   function redrawAll() {
-    drawGallery(); drawHead(); drawStatus(); drawCond(); drawValue(); drawNotes(); drawTracks(); drawDetails(); drawActions();
+    drawGallery(); drawHead(); drawStatus(); drawCond(); drawValue(); drawNotes(); drawListen(); drawTracks(); drawDetails(); drawActions();
   }
   redrawAll();
 
@@ -240,7 +263,7 @@ export function mount(root, args) {
       if (rec.source === 'discogs' && rec.releaseId && !rec.detail) {
         await ensureDetail(rec);
         if (!alive) return;
-        drawGallery(); drawHead(); drawTracks(); drawDetails(); drawValue();
+        drawGallery(); drawHead(); drawListen(); drawTracks(); drawDetails(); drawValue();
       }
       if (rec.source === 'discogs' && rec.releaseId && !(rec.market && rec.market.updated)) {
         await refreshMarket(rec);
