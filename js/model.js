@@ -161,6 +161,10 @@ export function youtubeId(uri) {
   }
 }
 
+// A track is identified by its position and title, so hearts survive a re-fetch of the tracklist.
+export const trackKey = (t) => `${t.position || ''}|${t.title || ''}`;
+export const isLoved = (rec, t) => (rec.loved || []).includes(trackKey(t));
+
 export function clock(sec) {
   const s = Math.round(Number(sec) || 0);
   if (!s) return '';

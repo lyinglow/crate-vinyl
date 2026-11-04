@@ -24,6 +24,7 @@ const COLUMNS = [
   ['Estimated value', (r) => { const v = M.estimate(r); return v == null ? '' : v.toFixed(2); }],
   ['Lowest for sale now', (r) => (r.market && r.market.lowest != null ? r.market.lowest : '')],
   ['Currency', (r) => (r.market && r.market.currency) || state.settings.currency],
+  ['Loved tracks', (r) => (r.loved || []).map((k) => k.split('|').slice(1).join('|')).join('; ')],
   ['Notes', (r) => r.notes],
   ['Date added', (r) => (r.added ? new Date(r.added).toISOString().slice(0, 10) : '')],
   ['Discogs release ID', (r) => r.releaseId],

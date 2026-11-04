@@ -229,7 +229,7 @@ function openCratePicker(mixId) {
     const paint = () => {
       const m = X.getMix(mixId);
       box.querySelector('#tl').innerHTML = tracks.length
-        ? `<div class="rows">${tracks.map((t, i) => `<button class="pick-row" data-t="${i}"><span>${esc(t.position)} ${esc(t.title)}<small>${esc(t.duration)}</small></span>${X.inMix(m, rec, t) ? '<span class="ok">Added</span>' : `<span>${icon('plus', 20)}</span>`}</button>`).join('')}</div>`
+        ? `<div class="rows">${tracks.map((t, i) => `<button class="pick-row" data-t="${i}"><span>${M.isLoved(rec, t) ? `<span class="loved">${icon('heart', 14)}</span> ` : ''}${esc(t.position)} ${esc(t.title)}<small>${esc(t.duration)}</small></span>${X.inMix(m, rec, t) ? '<span class="ok">Added</span>' : `<span>${icon('plus', 20)}</span>`}</button>`).join('')}</div>`
         : '<p class="muted">No tracklist for this record. Records added by hand have none.</p>';
     };
     paint();

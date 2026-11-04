@@ -441,3 +441,12 @@ a.chip { display: inline-block; }
 .pick-row small { display: block; color: var(--fg2); font-size: 13px; }
 .pick-row .ok { color: var(--good); font-weight: 600; font-size: 14px; }
 .sheet-tracks { margin-top: 8px; }
+
+/* ---------- loved tracks ---------- */
+.tracks li { grid-template-columns: 34px 1fr auto auto; }
+.tbtns { display: flex; gap: 6px; }
+.heart { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--bg2); color: var(--fg2); padding: 0; }
+.heart.on { color: var(--bad); }
+.heart.on svg { fill: currentColor; }
+.loved { color: var(--bad); display: inline-block; vertical-align: -1px; }
+.loved svg { display: inline-block; fill: currentColor; }

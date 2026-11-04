@@ -186,10 +186,20 @@ export function mount(root, args) {
   function drawTracks() {
     const el = $('#r-tracks', root);
     if (rec.tracklist && rec.tracklist.length) {
-      el.innerHTML = `<h3 class="sec">Tracklist</h3><ol class="tracks">${rec.tracklist.map((t, i) => (t.heading ? `<li class="head">${esc(t.title)}</li>` : `<li><span class="pos">${esc(t.position)}</span><span class="tt">${esc(t.title)}</span><span class="dur">${esc(t.duration)}</span><button class="add-mix" data-add="${i}" aria-label="Add to a mix">${icon('plus', 18)}</button></li>`)).join('')}</ol><p class="hint-text">Tap + to add a track to a mix.</p>`;
-      el.onclick = (e) => {
-        const b = e.target.closest('[data-add]');
-        if (b) openAddToMix(rec, rec.tracklist[Number(b.dataset.add)]);
+      el.innerHTML = `<h3 class="sec">Tracklist</h3><ol class="tracks">${rec.tracklist.map((t, i) => (t.heading ? `<li class="head">${esc(t.title)}</li>` : `<li><span class="pos">${esc(t.position)}</span><span class="tt">${esc(t.title)}</span><span class="dur">${esc(t.duration)}</span><span class="tbtns"><button class="heart${M.isLoved(rec, t) ? ' on' : ''}" data-heart="${i}" aria-pressed="${M.isLoved(rec, t)}" aria-label="Love this track">${icon('heart', 18)}</button><button class="add-mix" data-add="${i}" aria-label="Add to a mix">${icon('plus', 18)}</button></span></li>`)).join('')}</ol><p class="hint-text">Tap the heart on a track you love. Tap + to add it to a mix.</p>`;
+      el.onclick = async (e) => {
+        const add = e.target.closest('[data-add]');
+        if (add) return openAddToMix(rec, rec.tracklist[Number(add.dataset.add)]);
+        const h = e.target.closest('[data-heart]');
+        if (!h) return;
+        const key = M.trackKey(rec.tracklist[Number(h.dataset.heart)]);
+        const set = new Set(rec.loved || []);
+        if (set.has(key)) set.delete(key); else set.add(key);
+        rec.loved = [...set];
+        const on = set.has(key);
+        h.classList.toggle('on', on);
+        h.setAttribute('aria-pressed', String(on));
+        await save();
       };
     } else if (rec.source === 'discogs' && !rec.detail) {
       el.innerHTML = `<h3 class="sec">Tracklist</h3><p class="muted" id="tl-state">Loading...</p>`;
