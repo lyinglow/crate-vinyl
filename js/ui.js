@@ -22,6 +22,10 @@ const P = {
   camera: '<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2a1 1 0 0 0 .9-.6l.5-1A1 1 0 0 1 10 4h4a1 1 0 0 1 .9.4l.5 1a1 1 0 0 0 .9.6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5Z"/><circle cx="12" cy="12.5" r="3.2"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   play: '<path d="M8 5.5v13l11-6.5Z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  up: '<path d="m6 15 6-6 6 6"/>',
+  down: '<path d="m6 9 6 6 6-6"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
   external: '<path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
 };
 export function icon(name, size = 24) {

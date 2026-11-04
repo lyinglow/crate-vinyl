@@ -27,6 +27,25 @@ Today the app is the master copy. It sends changes to Discogs, but Discogs edits
 - Should it run when the app opens, or only when you tap the button? Suggest the button, plus a reminder after a week.
 - Records moved between Discogs folders. Treat as the same record.
 
+## Send a mix to Spotify
+
+Mix lists are built (they live in Crate). This would send one to Spotify as a private playlist.
+
+**How it would work:**
+1. One time: you make a free Spotify developer app and give Crate its Client ID. No secret is needed.
+2. Tap **Send to Spotify** on a mix, and sign in to Spotify once.
+3. Crate searches Spotify for each track by artist and title, picks the best match, and creates the playlist.
+4. Crate shows what it could not find, so you can fix those by hand.
+
+**Honest limits:**
+- Matches are best effort. Discogs lists the pressing (a 1973 original, a 2015 reissue). Spotify may offer a live, remastered or remix version instead. Check the playlist.
+- Some tracks are simply not on Spotify, especially rare, white label and old records.
+- Spotify controls new developer apps. Their rules for small apps change, so check the current limits (number of users, Premium needed) before building.
+- Signing in on iPhone from a Home Screen app can be awkward. The return to the app may land in Safari. This needs testing on a real phone.
+- Playback stays in the Spotify app. Crate only creates the playlist.
+
+**Cheaper first step:** a **Share list** button already copies a mix as plain text. A plain text list can be pasted into free tools that build Spotify playlists.
+
 ## Smaller ideas
 
 - Voice notes on a record: hold a button, say it, and it saves with the record. Works on iPhone and stays on the phone.

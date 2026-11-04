@@ -23,6 +23,7 @@ export function mount(root) {
       </div>
       <div class="chips scroll" id="status-chips">
         ${[['all', 'All'], ['keeping', 'Keeping'], ['for_sale', 'For sale'], ['sold', 'Sold']].map(([k, l]) => `<button class="chip${v.status === k ? ' on' : ''}" data-status="${k}">${l}</button>`).join('')}
+        <a class="chip" href="#/mixes">Mixes</a>
       </div>
       <div id="lib-body"></div>
     </div>`;

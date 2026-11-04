@@ -5,6 +5,7 @@ import { refreshMarket, ensureDetail, removeFromCollection, deleteListing, kick 
 import { esc, icon, openSheet, confirmSheet, toast, chipRow, bindChips, hydratePhotos, describeError, $ } from '../ui.js';
 import { openSellSheet, openSoldSheet } from './sell.js';
 import { openMatchSheet } from './match.js';
+import { openAddToMix } from './mixes.js';
 
 const CODES = M.GRADES.map((g) => g.code);
 
@@ -185,7 +186,11 @@ export function mount(root, args) {
   function drawTracks() {
     const el = $('#r-tracks', root);
     if (rec.tracklist && rec.tracklist.length) {
-      el.innerHTML = `<h3 class="sec">Tracklist</h3><ol class="tracks">${rec.tracklist.map((t) => (t.heading ? `<li class="head">${esc(t.title)}</li>` : `<li><span class="pos">${esc(t.position)}</span><span class="tt">${esc(t.title)}</span><span class="dur">${esc(t.duration)}</span></li>`)).join('')}</ol>`;
+      el.innerHTML = `<h3 class="sec">Tracklist</h3><ol class="tracks">${rec.tracklist.map((t, i) => (t.heading ? `<li class="head">${esc(t.title)}</li>` : `<li><span class="pos">${esc(t.position)}</span><span class="tt">${esc(t.title)}</span><span class="dur">${esc(t.duration)}</span><button class="add-mix" data-add="${i}" aria-label="Add to a mix">${icon('plus', 18)}</button></li>`)).join('')}</ol><p class="hint-text">Tap + to add a track to a mix.</p>`;
+      el.onclick = (e) => {
+        const b = e.target.closest('[data-add]');
+        if (b) openAddToMix(rec, rec.tracklist[Number(b.dataset.add)]);
+      };
     } else if (rec.source === 'discogs' && !rec.detail) {
       el.innerHTML = `<h3 class="sec">Tracklist</h3><p class="muted" id="tl-state">Loading...</p>`;
     } else {

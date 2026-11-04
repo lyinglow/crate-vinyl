@@ -1,5 +1,5 @@
 // Getting your data out: CSV for spreadsheets, JSON backup for restoring.
-import { state, allPhotos, putPhoto, saveRecords, saveSettings } from './store.js';
+import { state, allPhotos, putPhoto, saveRecords, saveSettings, saveMixes } from './store.js';
 import * as M from './model.js';
 
 const COLUMNS = [
@@ -84,7 +84,7 @@ export async function backupJson() {
   const photos = {};
   for (const p of await allPhotos()) photos[p.id] = await toDataUrl(p.blob);
   const { token, ...settings } = state.settings; // the token is never written to a backup
-  const data = { app: 'crate', version: 1, exportedAt: new Date().toISOString(), settings, records: [...state.records.values()], photos };
+  const data = { app: 'crate', version: 1, exportedAt: new Date().toISOString(), settings, records: [...state.records.values()], mixes: state.mixes, photos };
   return new Blob([JSON.stringify(data)], { type: 'application/json' });
 }
 
@@ -103,5 +103,11 @@ export async function restoreBackup(file) {
     await putPhoto(id, blob);
   }
   await saveRecords(data.records);
+  if (Array.isArray(data.mixes)) {
+    const byId = new Map(state.mixes.map((m) => [m.id, m]));
+    for (const m of data.mixes) byId.set(m.id, m);
+    state.mixes = [...byId.values()].sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    await saveMixes();
+  }
   return data.records.length;
 }

@@ -27,6 +27,7 @@ export const state = {
   records: new Map(),
   settings: { ...DEFAULTS },
   persisted: false,
+  mixes: [],
 };
 
 let db = null;
@@ -87,6 +88,8 @@ export async function init() {
   for (const r of all) state.records.set(r.id, r);
   const s = await req(os('meta').get('settings'));
   if (s && s.value) Object.assign(state.settings, s.value);
+  const mx = await req(os('meta').get('mixes'));
+  state.mixes = (mx && mx.value) || [];
   try {
     if (navigator.storage && navigator.storage.persisted) {
       state.persisted = await navigator.storage.persisted();
@@ -127,6 +130,11 @@ export async function saveSettings(patch) {
   emit('settings');
 }
 
+export async function saveMixes() {
+  await req(os('meta', 'readwrite').put({ key: 'mixes', value: state.mixes }));
+  emit('mixes');
+}
+
 export async function wipeAll() {
   await new Promise((resolve, reject) => {
     const tx = db.transaction(['records', 'photos', 'meta'], 'readwrite');
@@ -137,6 +145,7 @@ export async function wipeAll() {
     tx.onerror = () => reject(tx.error);
   });
   state.records.clear();
+  state.mixes = [];
   state.settings = { ...DEFAULTS };
   urlCache.clear();
   emit('records');
