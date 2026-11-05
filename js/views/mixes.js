@@ -16,7 +16,7 @@ export function mount(root, args) {
 function mountList(root) {
   root.innerHTML = `
     <div class="page">
-      <a class="back" href="#/library">${icon('back', 20)} Library</a>
+      <a class="back" href="#/browse">${icon('back', 20)} Browse</a>
       <div class="largetitle"><h1>Mixes</h1><p class="sub" id="mx-sub"></p></div>
       <button class="btn primary" id="new-mix">${icon('plus', 18)} New mix</button>
       <div id="mx-body"></div>

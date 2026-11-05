@@ -3,7 +3,8 @@ import { init, state, subscribe } from './store.js';
 import { status as sync, kick, pause, resume } from './sync.js';
 import { net } from './discogs.js';
 import { icon, esc, openSheet, toast } from './ui.js';
-import * as library from './views/library.js';
+import * as browse from './views/library.js';
+import * as library from './views/carousel.js';
 import * as record from './views/record.js';
 import * as scan from './views/scan.js';
 import * as sell from './views/sell.js';
@@ -14,6 +15,7 @@ import * as loved from './views/loved.js';
 
 const views = {
   library,
+  browse,
   record,
   scan,
   sell,
@@ -23,7 +25,7 @@ const views = {
   loved,
   welcome: { mount: settings.mountWelcome },
 };
-const tabOf = { record: 'library', mixes: 'library', loved: 'library', welcome: 'settings' };
+const tabOf = { record: 'library', browse: 'library', mixes: 'library', loved: 'library', welcome: 'settings' };
 
 const view = document.getElementById('view');
 const tabs = document.getElementById('tabs');
@@ -44,15 +46,18 @@ function parse() {
 const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const standalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
 
-function route() {
+const noMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let prevName = null;
+
+function render(name, args) {
   if (cleanup) { try { cleanup(); } catch (e) { console.error(e); } cleanup = null; }
-  const { name, args } = parse();
   // A fresh container each time, so old event listeners go with it.
   view.innerHTML = '';
   const page = document.createElement('div');
   page.className = 'screen';
   view.appendChild(page);
   if (name !== 'library') window.scrollTo(0, 0);
+  document.body.dataset.view = name;
   try {
     cleanup = views[name].mount(page, args) || null;
   } catch (e) {
@@ -65,7 +70,16 @@ function route() {
   }
   const active = tabOf[name] || name;
   tabs.querySelectorAll('a').forEach((a) => a.classList.toggle('on', a.dataset.tab === active));
-  document.body.dataset.view = name;
+}
+
+function route() {
+  const { name, args } = parse();
+  // The sleeve in the middle grows into the record page, and shrinks back again.
+  const morph = document.startViewTransition && !noMotion() && prevName
+    && ((prevName === 'library' && name === 'record') || (prevName === 'record' && name === 'library'));
+  prevName = name;
+  if (morph) document.startViewTransition(() => render(name, args));
+  else render(name, args);
 }
 
 // ---------------------------------------------------------------- sync bar
@@ -112,6 +126,7 @@ bar.addEventListener('click', () => {
 // ---------------------------------------------------------------- boot
 
 async function boot() {
+  if (!document.startViewTransition) document.documentElement.classList.add('no-vt');
   buildTabs();
   try {
     await init();

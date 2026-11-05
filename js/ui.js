@@ -34,7 +34,7 @@ export function icon(name, size = 24) {
 }
 
 // ---------- covers ----------
-function hue(rec) {
+export function hue(rec) {
   const s = `${rec.artist}|${rec.title}`;
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;

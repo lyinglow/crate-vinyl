@@ -26,7 +26,7 @@ export function mount(root) {
   let q = '';
   root.innerHTML = `
     <div class="page">
-      <a class="back" href="#/library">${icon('back', 20)} Library</a>
+      <a class="back" href="#/browse">${icon('back', 20)} Browse</a>
       <div class="largetitle"><h1>Loved tracks</h1><p class="sub" id="lv-sub"></p></div>
       <div id="lv-tools"></div>
       <div id="lv-body"></div>

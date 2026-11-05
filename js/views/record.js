@@ -5,6 +5,8 @@ import { refreshMarket, ensureDetail, removeFromCollection, deleteListing, kick 
 import { esc, icon, openSheet, confirmSheet, toast, chipRow, bindChips, hydratePhotos, describeError, $ } from '../ui.js';
 import { openSellSheet, openSoldSheet } from './sell.js';
 import { openMatchSheet } from './match.js';
+import { mountFlipper } from '../flipper.js';
+import { gallerySlides } from '../gallery.js';
 import { openAddToMix } from './mixes.js';
 
 const CODES = M.GRADES.map((g) => g.code);
@@ -37,20 +39,15 @@ export function mount(root, args) {
   const touchGrades = () => { if (rec.instanceId) rec.fieldsDirty = true; };
 
   // ------------------------------------------------------ gallery
+  // Tap the picture to turn it over. Drag it sideways to turn it with your finger.
+  let galIdx = 0;
+  let galSig = '';
   function drawGallery() {
-    const slides = [];
-    const imgs = (rec.images || []).map((i) => i.uri).filter(Boolean);
-    if (imgs.length) imgs.forEach((u) => slides.push(`<img src="${esc(u)}" alt="" referrerpolicy="no-referrer">`));
-    else if (rec.cover || rec.thumb) slides.push(`<img src="${esc(rec.cover || rec.thumb)}" data-alt="${esc(rec.thumb || '')}" alt="" referrerpolicy="no-referrer">`);
-    if (rec.photoSleeve) slides.push(`<img data-photo="${esc(rec.photoSleeve)}" alt="Your sleeve photo">`);
-    if (rec.photoLabel) slides.push(`<img data-photo="${esc(rec.photoLabel)}" alt="Your label photo">`);
-    const ph = `<span class="ph"><b>${esc(rec.artist)}</b>${esc(rec.title)}</span>`;
-    const g = $('#r-gallery', root);
-    g.innerHTML = `<div class="gallery">${(slides.length ? slides : ['']).map((s) => `<div class="slide cover" style="--h:${(rec.title.length * 37) % 360}">${ph}${s}</div>`).join('')}</div>${slides.length > 1 ? `<p class="pager" id="pager">1 of ${slides.length}</p>` : ''}`;
-    hydratePhotos(g);
-    const gal = g.querySelector('.gallery');
-    const pager = g.querySelector('#pager');
-    if (pager) gal.addEventListener('scroll', () => { pager.textContent = `${Math.round(gal.scrollLeft / gal.clientWidth) + 1} of ${slides.length}`; }, { passive: true });
+    const host = $('#r-gallery', root);
+    const sig = gallerySlides(rec).map((s) => s.src || s.photo).join('|');
+    if (sig === galSig && host.querySelector('.flipper')) return;
+    galSig = sig;
+    mountFlipper(host, rec, { start: galIdx, vtName: true, onIndex: (i) => { galIdx = i; } });
   }
 
   // ------------------------------------------------------ head

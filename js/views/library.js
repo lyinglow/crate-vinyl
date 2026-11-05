@@ -9,13 +9,15 @@ import { lovedCount } from './loved.js';
 const v = { q: '', status: 'all', genre: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added', count: 120, scroll: 0 };
 const STEP = 120;
 
-const filtersOn = () => !!(v.genre || v.format || v.label || v.artist || v.from || v.to);
+export const filterState = v;
+export const filtersOn = () => !!(v.genre || v.format || v.label || v.artist || v.from || v.to);
 
 export function mount(root) {
   const s = state.settings;
   root.innerHTML = `
     <div class="page">
-      <div class="largetitle"><h1>Library</h1><p class="sub" id="lib-count"></p></div>
+      <a class="back" href="#/library">${icon('back', 20)} Cover flow</a>
+      <div class="largetitle"><h1>Browse</h1><p class="sub" id="lib-count"></p></div>
       <div class="shortcuts">
         <a class="short" href="#/mixes">${icon('list', 20)}<span>Mixes</span><em id="n-mixes"></em></a>
         <a class="short" href="#/loved">${icon('heart', 20)}<span>Loved tracks</span><em id="n-loved"></em></a>
