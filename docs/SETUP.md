@@ -56,6 +56,32 @@ Prices by condition and listing both need a Discogs seller account.
 
 Until then, Crate shows the cheapest price for sale, and you can still mark records for sale inside the app.
 
+## Connect Spotify (optional)
+
+Crate can put the tracks you heart into a private Spotify playlist called **Crate loved**, and send any mix to Spotify as its own playlist.
+
+**One time setup**
+1. Go to `developer.spotify.com/dashboard` and open your app.
+2. In its settings, add this **Redirect URI** exactly, then save: `https://crate-vinyl-pixelhaus.vercel.app/`
+3. Copy the app's **Client ID**. It is 32 letters and numbers. Never use the Client secret.
+4. Open Crate from your Home Screen. Go to **Settings**, then **Spotify**. Paste the Client ID and tap **Connect Spotify**.
+5. Sign in to Spotify and tap **Agree**.
+
+**If you land on a page that says "Almost there"**
+On iPhone, Spotify sometimes returns you to a different window from the one Crate opened. That window shows a short code. Tap **Copy the code**, close the window, and open Crate again. In **Settings**, **Spotify**, open **Came back from Spotify with a code?**, paste the code and tap **Use this code**.
+
+**Using it**
+- Tap the heart on a track. A moment later it is on your **Crate loved** playlist. A green tick means it is on Spotify. A grey cross means Spotify did not have it.
+- Open a mix and tap **Send to Spotify**. Tap it again later to add tracks you added since.
+- **Settings**, **Spotify**, **Add my loved tracks now** sends every heart you already have.
+- Taking a heart off does not remove the track from the playlist. Do that in Spotify.
+
+**Things to know**
+- Crate searches Spotify for each track. It prefers the studio version and skips live, remix and instrumental versions unless that is what Discogs lists. Check the playlist now and then.
+- It only adds while Crate is open, so leave the app open for a moment after hearting.
+- A Spotify playlist holds up to 10,000 tracks.
+- Spotify limits new developer apps. If sign in is refused, check your app's settings on the Spotify dashboard.
+
 ## If something goes wrong
 
 | What you see | What to do |

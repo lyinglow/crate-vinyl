@@ -27,24 +27,15 @@ Today the app is the master copy. It sends changes to Discogs, but Discogs edits
 - Should it run when the app opens, or only when you tap the button? Suggest the button, plus a reminder after a week.
 - Records moved between Discogs folders. Treat as the same record.
 
-## Send a mix to Spotify
+## Spotify: what is built, and what could come next
 
-Mix lists are built (they live in Crate). This would send one to Spotify as a private playlist.
+Built: hearted tracks go to a private **Crate loved** playlist, and any mix can be sent to Spotify. See docs/SETUP.md.
 
-**How it would work:**
-1. One time: you make a free Spotify developer app and give Crate its Client ID. No secret is needed.
-2. Tap **Send to Spotify** on a mix, and sign in to Spotify once.
-3. Crate searches Spotify for each track by artist and title, picks the best match, and creates the playlist.
-4. Crate shows what it could not find, so you can fix those by hand.
-
-**Honest limits:**
-- Matches are best effort. Discogs lists the pressing (a 1973 original, a 2015 reissue). Spotify may offer a live, remastered or remix version instead. Check the playlist.
-- Some tracks are simply not on Spotify, especially rare, white label and old records.
-- Spotify controls new developer apps. Their rules for small apps change, so check the current limits (number of users, Premium needed) before building.
-- Signing in on iPhone from a Home Screen app can be awkward. The return to the app may land in Safari. This needs testing on a real phone.
-- Playback stays in the Spotify app. Crate only creates the playlist.
-
-**Cheaper first step:** a **Share list** button already copies a mix as plain text. A plain text list can be pasted into free tools that build Spotify playlists.
+Could come next:
+- Remove a track from the playlist when you take its heart off.
+- Add every track of a new vinyl to a playlist. Spotify playlists stop at 10,000 tracks, so this would need one playlist per year or per genre.
+- A way to fix a wrong match by hand, by choosing from Spotify's search results.
+- Save whole albums to your Spotify library instead of single tracks.
 
 ## Smaller ideas
 

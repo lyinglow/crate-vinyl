@@ -84,7 +84,7 @@ const toDataUrl = (blob) => new Promise((resolve, reject) => {
 export async function backupJson() {
   const photos = {};
   for (const p of await allPhotos()) photos[p.id] = await toDataUrl(p.blob);
-  const { token, ...settings } = state.settings; // the token is never written to a backup
+  const { token, spotify, spotifyQueue, ...settings } = state.settings; // sign in details are never written to a backup
   const data = { app: 'crate', version: 1, exportedAt: new Date().toISOString(), settings, records: [...state.records.values()], mixes: state.mixes, photos };
   return new Blob([JSON.stringify(data)], { type: 'application/json' });
 }

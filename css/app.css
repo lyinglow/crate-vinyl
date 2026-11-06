@@ -544,3 +544,10 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .chip.loved-chip { display: inline-flex; align-items: center; gap: 6px; }
 .chip.loved-chip svg { color: var(--bad); fill: currentColor; stroke: none; }
 .chip.loved-chip.on svg { color: inherit; }
+
+/* ---------- spotify ---------- */
+.meter { height: 6px; border-radius: 3px; background: var(--bg3); overflow: hidden; margin: 14px 0; }
+.meter i { display: block; height: 100%; width: 0; background: var(--good); transition: width 0.2s; }
+.sp-ok, .sp-miss { display: grid; place-items: center; width: 22px; height: 30px; }
+.sp-ok { color: var(--good); }
+.sp-miss { color: var(--fg3); }

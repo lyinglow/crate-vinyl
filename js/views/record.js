@@ -7,6 +7,7 @@ import { openSellSheet, openSoldSheet } from './sell.js';
 import { openMatchSheet } from './match.js';
 import { mountFlipper } from '../flipper.js';
 import { filterState as F } from './library.js';
+import * as SP from '../spotify.js';
 import { gallerySlides } from '../gallery.js';
 import { openAddToMix } from './mixes.js';
 
@@ -203,10 +204,17 @@ export function mount(root, args) {
   }
 
   // ------------------------------------------------------ tracks
+  function spotifyMark(t) {
+    const st = SP.loveStatus(rec, t);
+    if (st === 'added') return `<span class="sp-ok" title="On Spotify">${icon('check', 15)}</span>`;
+    if (st === 'miss') return `<span class="sp-miss" title="Not found on Spotify">${icon('close', 13)}</span>`;
+    return '';
+  }
+
   function drawTracks() {
     const el = $('#r-tracks', root);
     if (rec.tracklist && rec.tracklist.length) {
-      el.innerHTML = `<h3 class="sec">Tracklist</h3><ol class="tracks">${rec.tracklist.map((t, i) => (t.heading ? `<li class="head">${esc(t.title)}</li>` : `<li><span class="pos">${esc(t.position)}</span><span class="tt">${esc(t.title)}</span><span class="dur">${esc(t.duration)}</span><span class="tbtns"><button class="heart${M.isLoved(rec, t) ? ' on' : ''}" data-heart="${i}" aria-pressed="${M.isLoved(rec, t)}" aria-label="Love this track">${icon('heart', 18)}</button><button class="add-mix" data-add="${i}" aria-label="Add to a mix">${icon('plus', 18)}</button></span></li>`)).join('')}</ol><p class="hint-text">Tap the heart on a track you love. Tap + to add it to a mix.</p>`;
+      el.innerHTML = `<h3 class="sec">Tracklist</h3><ol class="tracks">${rec.tracklist.map((t, i) => (t.heading ? `<li class="head">${esc(t.title)}</li>` : `<li><span class="pos">${esc(t.position)}</span><span class="tt">${esc(t.title)}</span><span class="dur">${esc(t.duration)}</span><span class="tbtns">${spotifyMark(t)}<button class="heart${M.isLoved(rec, t) ? ' on' : ''}" data-heart="${i}" aria-pressed="${M.isLoved(rec, t)}" aria-label="Love this track">${icon('heart', 18)}</button><button class="add-mix" data-add="${i}" aria-label="Add to a mix">${icon('plus', 18)}</button></span></li>`)).join('')}</ol><p class="hint-text">Tap the heart on a track you love. Tap + to add it to a mix.</p>`;
       el.onclick = async (e) => {
         const add = e.target.closest('[data-add]');
         if (add) return openAddToMix(rec, rec.tracklist[Number(add.dataset.add)]);
@@ -221,6 +229,7 @@ export function mount(root, args) {
         h.setAttribute('aria-pressed', String(on));
         drawLove();
         await save();
+        if (on) SP.enqueueLove(rec, rec.tracklist[Number(h.dataset.heart)]);
       };
     } else if (rec.source === 'discogs' && !rec.detail) {
       el.innerHTML = `<h3 class="sec">Tracklist</h3><p class="muted" id="tl-state">Loading...</p>`;
@@ -315,5 +324,6 @@ export function mount(root, args) {
     }
   })();
 
-  return () => { alive = false; };
+  const offSpotify = subscribe((k) => { if (k === 'spotify') drawTracks(); });
+  return () => { alive = false; offSpotify(); };
 }

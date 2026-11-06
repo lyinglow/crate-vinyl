@@ -3,6 +3,7 @@ import { state, subscribe } from '../store.js';
 import * as M from '../model.js';
 import * as X from '../mixes.js';
 import { ensureDetail } from '../sync.js';
+import * as SP from '../spotify.js';
 import { esc, cover, icon, openSheet, confirmSheet, toast, debounce, describeError, $ } from '../ui.js';
 
 const miniCover = (t) => cover({ artist: t.artist, title: t.album, thumb: t.thumb, cover: t.cover || t.thumb }, { small: true });
@@ -69,7 +70,7 @@ function mountMix(root, id) {
       <div class="largetitle"><h1>${esc(m.name)}</h1><p class="sub">${m.tracks.length} track${m.tracks.length === 1 ? '' : 's'}${secs ? ' · ' + esc(X.span(secs)) : ''}</p></div>
       <div class="mixhead">
         <button class="btn small primary" id="add-crate">${icon('plus', 16)} Add from my crate</button>
-        ${m.tracks.length ? `<button class="btn small" id="edit">${editing ? 'Done' : 'Edit'}</button><button class="btn small" id="share">Share list</button>` : ''}
+        ${m.tracks.length ? `<button class="btn small" id="edit">${editing ? 'Done' : 'Edit'}</button><button class="btn small" id="share">Share list</button><button class="btn small" id="send-sp">Send to Spotify</button>` : ''}
         <button class="btn small" id="rename">Rename</button>
       </div>`;
     $('#mx-tracks', root).innerHTML = m.tracks.length
@@ -89,6 +90,7 @@ function mountMix(root, id) {
     on('#edit', () => { editing = !editing; draw(); });
     on('#rename', () => renameSheet(m));
     on('#share', () => shareMix(m));
+    on('#send-sp', () => sendToSpotify(m));
   }
   draw();
 
@@ -103,6 +105,38 @@ function mountMix(root, id) {
     if (go && state.records.has(go.dataset.go)) location.hash = `#/record/${go.dataset.go}`;
   });
   return subscribe((k) => { if (k === 'mixes') draw(); });
+}
+
+function sendToSpotify(m) {
+  if (!SP.connected()) {
+    const s = openSheet({
+      title: 'Connect Spotify first',
+      body: `<p class="muted">Crate needs to be connected to your Spotify account. It takes a minute in Settings.</p>
+        <div class="stack"><a class="btn primary" href="#/settings" id="go">Open Settings</a><button class="btn ghost" id="no">Not now</button></div>`,
+    });
+    s.el.querySelector('#go').onclick = () => s.close();
+    s.el.querySelector('#no').onclick = () => s.close();
+    return;
+  }
+  const s = openSheet({ title: 'Sending to Spotify', body: '<p class="muted" id="spmsg">Finding your tracks on Spotify...</p><div class="meter"><i id="spbar"></i></div><div id="spend"></div>' });
+  const msg = s.el.querySelector('#spmsg');
+  const bar = s.el.querySelector('#spbar');
+  SP.sendMix(m, (i, n) => {
+    msg.textContent = `Found ${i} of ${n}`;
+    bar.style.width = `${Math.round((i / n) * 100)}%`;
+  }).then((r) => {
+    msg.innerHTML = r.added
+      ? `<b>${r.added}</b> track${r.added === 1 ? '' : 's'} added to the playlist <b>${esc(m.name)}</b>.`
+      : 'Nothing new to add. The playlist is up to date.';
+    s.el.querySelector('#spend').innerHTML = `
+      ${r.missing.length ? `<p class="muted" style="margin-top:10px">Not on Spotify (${r.missing.length}):</p><ul class="guide" style="padding-left:18px;margin:4px 0;color:var(--fg2);font-size:14px">${r.missing.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      <div class="stack">${r.playlistId ? `<a class="btn primary" href="${SP.playlistUrl(r.playlistId)}" target="_blank" rel="noopener">Open in Spotify</a>` : ''}<button class="btn" id="done">Done</button></div>`;
+    s.el.querySelector('#done').onclick = () => s.close();
+  }).catch((e) => {
+    msg.textContent = describeError(e);
+    s.el.querySelector('#spend').innerHTML = '<div class="stack"><button class="btn" id="done">Close</button></div>';
+    s.el.querySelector('#done').onclick = () => s.close();
+  });
 }
 
 async function shareMix(m) {

@@ -21,6 +21,13 @@ export const DEFAULTS = {
   size: 3,
   worthMin: 30,
   collectionValue: null,
+  spotifyClientId: '',
+  spotifyAuthBase: '',
+  spotifyApiBase: '',
+  spotify: null,
+  spotifyAuto: true,
+  spotifyPlaylists: {},
+  spotifyQueue: [],
 };
 
 export const state = {

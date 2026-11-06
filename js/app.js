@@ -1,5 +1,5 @@
 // Starts the app: storage, screens, tab bar, sync bar, offline support.
-import { init, state, subscribe } from './store.js';
+import { init, state, subscribe, saveSettings } from './store.js';
 import { status as sync, kick, pause, resume } from './sync.js';
 import { net } from './discogs.js';
 import { icon, esc, openSheet, toast } from './ui.js';
@@ -12,6 +12,7 @@ import * as value from './views/value.js';
 import * as settings from './views/settings.js';
 import * as mixes from './views/mixes.js';
 import * as loved from './views/loved.js';
+import * as spotify from './spotify.js';
 
 const views = {
   library,
@@ -23,6 +24,18 @@ const views = {
   settings,
   mixes,
   loved,
+  // A one-tap link that saves your Spotify Client ID on this phone: #/spotifyid/<32 characters>
+  spotifyid: {
+    mount(root, args) {
+      const id = String(args[0] || '').trim().toLowerCase();
+      if (/^[0-9a-f]{32}$/.test(id)) {
+        saveSettings({ spotifyClientId: id }).then(() => { toast('Spotify Client ID saved'); location.replace('#/settings'); });
+      } else {
+        toast('That is not a Spotify Client ID. It has 32 letters and numbers.');
+        location.replace('#/settings');
+      }
+    },
+  },
   welcome: { mount: settings.mountWelcome },
 };
 const tabOf = { record: 'library', browse: 'library', mixes: 'library', loved: 'library', welcome: 'settings' };
@@ -123,6 +136,20 @@ bar.addEventListener('click', () => {
   s.el.querySelector('#sc').onclick = () => s.close();
 });
 
+// Spotify sent you back to a window that did not start the sign in. Show the code to take back to Crate.
+function showCode(code) {
+  tabs.hidden = true;
+  view.innerHTML = `<div class="page welcome"><div class="disc big"></div><h1>Almost there</h1>
+    <p class="lead">Copy this code. Close this window. Then paste it into Crate under Settings, Spotify.</p>
+    <div class="card"><input id="code" readonly value="${esc(code)}" aria-label="Your code"></div>
+    <div class="stack"><button class="btn primary" id="copy">Copy the code</button></div></div>`;
+  const input = view.querySelector('#code');
+  view.querySelector('#copy').onclick = async () => {
+    input.select();
+    try { await navigator.clipboard.writeText(code); view.querySelector('#copy').textContent = 'Copied'; } catch { document.execCommand && document.execCommand('copy'); }
+  };
+}
+
 // ---------------------------------------------------------------- boot
 
 async function boot() {
@@ -135,11 +162,22 @@ async function boot() {
     return;
   }
   subscribe((k) => { if (k === 'sync' || k === 'net') drawBar(); });
+  subscribe((k) => {
+    if (k !== 'spotify' || spotify.status.busy || !spotify.missed.length) return;
+    const names = spotify.missed.splice(0);
+    toast(names.length === 1 ? `Not on Spotify: ${names[0]}` : `${names.length} tracks are not on Spotify`, { ms: 6000 });
+  });
   window.addEventListener('hashchange', route);
-  window.addEventListener('online', () => kick());
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
+  window.addEventListener('online', () => { kick(); spotify.kickLoved(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { kick(); spotify.kickLoved(); } });
+  const back = await spotify.handleReturn();
+  if (back.kind === 'copy') { showCode(back.code); return; }
+  if (back.kind === 'done' || back.kind === 'error') location.hash = '#/settings';
   if (!location.hash && !state.settings.token && state.records.size === 0) location.hash = '#/welcome';
   route();
+  if (back.kind === 'done') toast('Spotify connected');
+  if (back.kind === 'error') toast(back.message, { ms: 7000 });
+  spotify.kickLoved();
   drawBar();
   kick();
 

@@ -4,6 +4,8 @@ import * as M from '../model.js';
 import { D } from '../discogs.js';
 import { importCollection, refreshAllPrices, kick, pendingPrices } from '../sync.js';
 import { exportCsv, exportBackup, restoreBackup } from '../exporter.js';
+import * as SP from '../spotify.js';
+import { lovedCount } from './loved.js';
 import { esc, icon, toast, confirmSheet, chipRow, bindChips, describeError, $ } from '../ui.js';
 
 const CODES = M.GRADES.map((g) => g.code);
@@ -104,6 +106,25 @@ async function runImport(btn, stateEl) {
 
 // ---------------------------------------------------------------- settings
 
+function spotifyCard(s) {
+  if (SP.connected()) {
+    const pl = (s.spotifyPlaylists || {}).loved;
+    return `<p>Connected as <b>${esc(s.spotify.name || 'Spotify')}</b></p>
+      <label class="switch"><input type="checkbox" id="sp-auto" ${s.spotifyAuto !== false ? 'checked' : ''}><span>Add tracks I heart to my "${esc(SP.LOVED_NAME)}" playlist</span></label>
+      <p class="muted" id="sp-state"></p>
+      <div class="row-btns">
+        <button class="btn small" id="sp-now">Add my loved tracks now (${lovedCount()})</button>
+        ${pl ? `<a class="btn small" href="${SP.playlistUrl(pl)}" target="_blank" rel="noopener">Open the playlist</a>` : ''}
+        <button class="btn small" id="sp-off">Disconnect</button>
+      </div>`;
+  }
+  return `<label class="field"><span>Spotify Client ID</span><input id="sp-id" value="${esc(s.spotifyClientId || '')}" placeholder="32 letters and numbers" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+    <p class="hint-text" style="margin-top:0">In your Spotify developer app, add this Redirect URI exactly:<br><b id="sp-uri" style="word-break:break-all">${esc(SP.redirectUri())}</b></p>
+    <button class="btn primary" id="sp-connect" style="margin-top:12px">Connect Spotify</button>
+    <details class="guide" style="margin-top:10px"><summary>Came back from Spotify with a code?</summary>
+      <form id="sp-form" style="margin-top:8px"><label class="field"><input id="sp-code" placeholder="Paste the code here" autocomplete="off" autocapitalize="off"></label><button class="btn small" type="submit">Use this code</button></form></details>`;
+}
+
 export function mount(root) {
   function draw() {
     const s = state.settings;
@@ -118,6 +139,9 @@ export function mount(root) {
             <div class="row-btns"><button class="btn small" id="import">Import my Discogs collection</button><button class="btn small" id="disconnect">Disconnect</button></div>
             <p class="hint-text" id="import-state"></p>` : tokenForm()}
         </div>
+
+        <h3 class="sec">Spotify</h3>
+        <div class="card" id="sp-card">${spotifyCard(s)}</div>
 
         <h3 class="sec">When you add a record</h3>
         <div class="card">
@@ -161,6 +185,7 @@ export function mount(root) {
     }
     bindChips($('#d-media', root), (c) => { if (c) saveSettings({ mediaGrade: c }); });
     bindChips($('#d-sleeve', root), (c) => { if (c) saveSettings({ sleeveGrade: c }); });
+    wireSpotify();
     $('#t-coll', root).onchange = (e) => { saveSettings({ addToCollection: e.target.checked }); if (e.target.checked) kick(); };
     $('#t-price', root).onchange = (e) => { saveSettings({ fetchPrices: e.target.checked }); if (e.target.checked) kick(); };
     $('#reprice', root).onclick = async () => {
@@ -191,5 +216,43 @@ export function mount(root) {
       location.reload();
     };
   }
+  function spotifyState() {
+    const el = $('#sp-state', root);
+    if (!el) return;
+    const n = SP.lovedPending();
+    el.textContent = SP.status.error || (n ? `${n} track${n === 1 ? '' : 's'} waiting to be added. Keep the app open.` : 'Up to date.');
+  }
+
+  function wireSpotify() {
+    const get = (id) => $(id, root);
+    if (get('#sp-connect')) {
+      get('#sp-id').onchange = (e) => saveSettings({ spotifyClientId: e.target.value.trim().toLowerCase() });
+      get('#sp-connect').onclick = async () => {
+        try {
+          await saveSettings({ spotifyClientId: get('#sp-id').value.trim().toLowerCase() });
+          await SP.startLogin();
+        } catch (e) { toast(describeError(e)); }
+      };
+      get('#sp-form').onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+          await SP.finishWithCode(get('#sp-code').value);
+          toast('Spotify connected');
+          draw();
+        } catch (err) { toast(describeError(err), { ms: 6000 }); }
+      };
+      return;
+    }
+    get('#sp-auto').onchange = (e) => { saveSettings({ spotifyAuto: e.target.checked }); if (e.target.checked) SP.kickLoved(); };
+    get('#sp-now').onclick = async () => {
+      const n = await SP.enqueueAllLoved();
+      toast(n ? `Adding ${n} track${n === 1 ? '' : 's'} to Spotify` : 'Everything you love is already there');
+      spotifyState();
+    };
+    get('#sp-off').onclick = async () => { await SP.disconnect(); draw(); };
+    spotifyState();
+  }
+
   draw();
+  return subscribe((k) => { if (k === 'spotify') spotifyState(); });
 }
