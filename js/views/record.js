@@ -180,7 +180,7 @@ export function mount(root, args) {
   // ------------------------------------------------------ listen
   function drawListen() {
     const el = $('#r-listen', root);
-    const vids = rec.videos || [];
+    const vids = M.uniqueVideos(rec.videos || []);
     if (!vids.length) {
       el.innerHTML = rec.source === 'discogs' && rec.detail && Array.isArray(rec.videos)
         ? '<h3 class="sec">Listen</h3><p class="muted">Discogs has no videos for this release.</p>' : '';

@@ -17,8 +17,18 @@ function seg(mode, linkId) {
   return `<div class="seg" role="tablist">${tabs.map(([m, l]) => `<a role="tab" class="${m === mode ? 'on' : ''}" href="#/scan/${m}${linkId && m === 'search' ? '/' + linkId : ''}">${l}</a>`).join('')}</div>`;
 }
 
+// The Scan tab opens the way you added last time, so no camera prompt when you are typing records in.
+const MODES = ['barcode', 'search', 'manual'];
+function lastMode() {
+  try { const m = localStorage.getItem('crate-add-mode'); return MODES.includes(m) ? m : 'barcode'; } catch { return 'barcode'; }
+}
+function rememberMode(m) {
+  try { localStorage.setItem('crate-add-mode', m); } catch { /* fine */ }
+}
+
 export function mount(root, args) {
-  const mode = args[0] || 'barcode';
+  const mode = MODES.includes(args[0]) ? args[0] : lastMode();
+  rememberMode(mode);
   const linkId = args[1] || '';
   if (mode === 'search') return mountSearch(root, linkId);
   if (mode === 'manual') return mountManual(root);

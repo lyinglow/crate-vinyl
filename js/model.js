@@ -161,6 +161,19 @@ export function youtubeId(uri) {
   }
 }
 
+// Discogs sometimes lists one song twice, as two uploads. Keep the first of each.
+export function uniqueVideos(list) {
+  const ids = new Set();
+  const titles = new Set();
+  return (list || []).filter((v) => {
+    const t = String(v.title || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (ids.has(v.id) || (t && titles.has(t))) return false;
+    ids.add(v.id);
+    if (t) titles.add(t);
+    return true;
+  });
+}
+
 // A track is identified by its position and title, so hearts survive a re-fetch of the tracklist.
 export const trackKey = (t) => `${t.position || ''}|${t.title || ''}`;
 export const isLoved = (rec, t) => (rec.loved || []).includes(trackKey(t));
@@ -205,7 +218,7 @@ export function applyRelease(rec, rel, currency) {
     const b = rec.identifiers.find((i) => i.type === 'Barcode');
     if (b) rec.barcode = String(b.value).replace(/\D/g, '');
   }
-  rec.videos = (rel.videos || []).map((v) => ({ id: youtubeId(v.uri), title: v.title || '', duration: v.duration || 0 })).filter((v) => v.id).slice(0, 12);
+  rec.videos = uniqueVideos((rel.videos || []).map((v) => ({ id: youtubeId(v.uri), title: v.title || '', duration: v.duration || 0 })).filter((v) => v.id)).slice(0, 12);
   rec.releaseNotes = (rel.notes || '').slice(0, 2500);
   rec.community = rel.community ? { have: rel.community.have, want: rel.community.want } : rec.community || null;
   rec.masterId = rel.master_id || rec.masterId || null;
