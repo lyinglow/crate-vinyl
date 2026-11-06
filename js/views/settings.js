@@ -145,6 +145,12 @@ export function mount(root) {
             <p class="hint-text" id="import-state"></p>` : tokenForm()}
         </div>
 
+        <h3 class="sec">Cover flow background</h3>
+        <div class="card">
+          <div class="chips" id="bg-chips">${[['soft', 'Soft gradient'], ['pixel', 'Pixels and grain'], ['off', 'Plain']].map(([k, l]) => `<button type="button" class="chip${(s.bgStyle || 'soft') === k ? ' on' : ''}" data-bg="${k}">${l}</button>`).join('')}</div>
+          <p class="hint-text">Colour taken from the sleeves near the middle. Soft is a pale blend. Pixels is chunky with film grain. Plain turns it off.</p>
+        </div>
+
         <h3 class="sec">Spotify</h3>
         <div class="card" id="sp-card">${spotifyCard(s)}</div>
 
@@ -191,6 +197,13 @@ export function mount(root) {
     bindChips($('#d-media', root), (c) => { if (c) saveSettings({ mediaGrade: c }); });
     bindChips($('#d-sleeve', root), (c) => { if (c) saveSettings({ sleeveGrade: c }); });
     wireSpotify();
+    $('#bg-chips', root).addEventListener('click', (e) => {
+      const b = e.target.closest('[data-bg]');
+      if (!b) return;
+      root.querySelectorAll('#bg-chips .chip').forEach((c) => c.classList.toggle('on', c === b));
+      saveSettings({ bgStyle: b.dataset.bg });
+      toast('Saved. See it on the Library tab.');
+    });
     $('#t-coll', root).onchange = (e) => { saveSettings({ addToCollection: e.target.checked }); if (e.target.checked) kick(); };
     $('#t-price', root).onchange = (e) => { saveSettings({ fetchPrices: e.target.checked }); if (e.target.checked) kick(); };
     $('#reprice', root).onclick = async () => {

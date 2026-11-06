@@ -16,7 +16,7 @@ import { openGenreSheet, genreLabel, genreOn } from './genres.js';
 import { ensureDetail } from '../sync.js';
 
 const LIVE = 6; // sleeves drawn on each side of the middle
-const BLOCK = 14; // each pixel of the background is this many screen pixels wide
+const BLOCKS = { pixel: 14, soft: 30 }; // how many screen pixels wide each pixel of the background is
 const hash = (s) => { let h = 2166136261; for (let k = 0; k < s.length; k++) { h ^= s.charCodeAt(k); h = Math.imul(h, 16777619); } return h >>> 0; };
 let grainUrl = '';
 // A square of random speckle, made once. Light and dark specks, each partly see-through.
@@ -83,6 +83,9 @@ export function mount(root) {
   // A tiny canvas, stretched to fill the screen and blurred by CSS. The sleeves near the middle are
   // drawn on it small, so their colours melt into each other and slide as you scroll. Drawing an image
   // is allowed even from another site. Reading its pixels is not, which is why this does it by painting.
+  const bg = ['soft', 'pixel', 'off'].includes(state.settings.bgStyle) ? state.settings.bgStyle : 'soft';
+  const BLOCK = BLOCKS[bg] || BLOCKS.soft;
+  stage.classList.add(`bg-${bg}`);
   const amb = root.querySelector('#amb');
   const ambWrap = root.querySelector('#ambwrap');
   const grain = root.querySelector('#grain');
@@ -107,6 +110,15 @@ export function mount(root) {
         c.height = 40;
         c.getContext('2d').drawImage(im, 0, 0, 40, 40);
         entry.small = c;
+        // The middle of the sleeve shrunk to 3 by 3: nine averaged colours. The edge is skipped, because
+        // white borders would turn every colour grey. Stretched smoothly, the nine make a pale gradient.
+        const t = document.createElement('canvas');
+        t.width = 3;
+        t.height = 3;
+        const tg = t.getContext('2d');
+        tg.imageSmoothingQuality = 'high';
+        tg.drawImage(c, 7, 7, 26, 26, 0, 0, 3, 3);
+        entry.tiny = t;
         paintAmbient(lastPos);
       };
       im.src = url;
@@ -121,7 +133,7 @@ export function mount(root) {
 
   function paintAmbient(pos) {
     lastPos = pos;
-    if (!recs.length) return;
+    if (!recs.length || bg === 'off') return;
     const mid = Math.max(0, Math.min(recs.length - 1, Math.round(pos)));
     const W = amb.width;
     const H = amb.height;
@@ -132,7 +144,7 @@ export function mount(root) {
     // A small canvas that the screen shows as big square blocks (that is the pixelation). Each sleeve
     // is drawn as a large shape at its own angle, position and size, worked out from its id so a record
     // always looks the same.
-    if (CAN_FILTER) actx.filter = 'saturate(1.5)';
+    if (CAN_FILTER) actx.filter = bg === 'pixel' ? 'saturate(1.5)' : 'blur(1.2px) saturate(1.9)';
     const near = [];
     for (let i = mid - 3; i <= mid + 3; i++) {
       if (i < 0 || i >= recs.length) continue;
@@ -144,7 +156,7 @@ export function mount(root) {
       const r = recs[i];
       const h = hash(r.id);
       const a = Math.max(0, Math.min(1, 1.25 - Math.abs(d) * 0.5));
-      const size = W * (1.0 + ((h >>> 17) % 70) / 100) * (1 - Math.abs(d) * 0.08);
+      const size = W * ((bg === 'pixel' ? 1.0 : 1.5) + ((h >>> 17) % 70) / 100) * (1 - Math.abs(d) * 0.08);
       const cx = W / 2 + d * W * 0.3 + (((h >>> 3) % 100) / 100 - 0.5) * W * 0.3;
       const cy = H * 0.46 + (((h >>> 9) % 100) / 100 - 0.5) * H * 0.34;
       const tilt = (h % 360) * (Math.PI / 180); // any angle at all
@@ -153,7 +165,8 @@ export function mount(root) {
       actx.translate(cx, cy);
       actx.rotate(tilt);
       const p = pic(r);
-      if (p.small) actx.drawImage(p.small, -size / 2, -size / 2, size, size);
+      const src = bg === 'pixel' ? p.small : p.tiny;
+      if (src) actx.drawImage(src, -size / 2, -size / 2, size, size);
       else { actx.fillStyle = `hsl(${hue(r)} 40% 55%)`; actx.fillRect(-size / 2, -size / 2, size, size); }
       actx.restore();
     }

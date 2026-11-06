@@ -575,3 +575,10 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .stage::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 22%; z-index: 1; pointer-events: none; background: linear-gradient(to top, transparent, var(--glass)); }
 .stage::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 36%; z-index: 0; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--glass)); }
 .stage > .stage-top, .stage > .flow, .stage > .cap, .stage > .cap-hint, .stage > .empty { position: relative; z-index: 1; }
+
+/* ---------- background styles ---------- */
+.stage.bg-off .ambient-wrap, .stage.bg-off .grain { display: none; }
+/* Soft: a pale blend with a little grain. The picture is stretched smoothly, not in blocks. */
+.stage.bg-soft .ambient { image-rendering: auto; opacity: 0.6; }
+.stage.bg-soft .grain { opacity: 0.2; }
+@media (prefers-color-scheme: dark) { .stage.bg-soft .ambient { opacity: 0.42; } .stage.bg-soft .grain { opacity: 0.16; } }

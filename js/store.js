@@ -27,6 +27,7 @@ export const DEFAULTS = {
   spotify: null,
   spotifyAuto: true,
   spotifyAll: true,
+  bgStyle: 'soft',
   spotifyPlaylists: {},
   spotifyQueue: [],
 };
