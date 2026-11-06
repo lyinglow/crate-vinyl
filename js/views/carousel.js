@@ -16,6 +16,7 @@ import { openGenreSheet, genreLabel, genreOn } from './genres.js';
 import { ensureDetail } from '../sync.js';
 
 const LIVE = 6; // sleeves drawn on each side of the middle
+const CAN_FILTER = typeof CanvasRenderingContext2D !== 'undefined' && 'filter' in CanvasRenderingContext2D.prototype;
 const PULL_OPEN = 90; // pixels you must pull up to open a record
 const reduce = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -29,7 +30,7 @@ const markOpened = () => { try { localStorage.setItem('crate.opened', '1'); } ca
 export function mount(root) {
   root.innerHTML = `
     <div class="stage" id="stage">
-      <canvas class="ambient" id="amb" width="56" height="84" aria-hidden="true"></canvas>
+      <div class="ambient-wrap" aria-hidden="true"><canvas class="ambient" id="amb" width="30" height="45"></canvas></div>
       <div class="stage-top">
         <div><div class="stage-title">Library</div><div class="stage-sub" id="st-count"></div></div>
         <div class="stage-actions">
@@ -67,23 +68,30 @@ export function mount(root) {
   let lastPos = 0;
   let drawn = 0;
 
+  // Each sleeve is shrunk once to a tiny copy. Turning a big photo around many times a second is slow.
   function pic(r) {
     if (pics.has(r.id)) return pics.get(r.id);
+    const entry = { small: null };
     const make = (url) => {
       const im = new Image();
       im.decoding = 'async';
       im.referrerPolicy = 'no-referrer';
-      im.onload = () => paintAmbient(lastPos);
+      im.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = 40;
+        c.height = 40;
+        c.getContext('2d').drawImage(im, 0, 0, 40, 40);
+        entry.small = c;
+        paintAmbient(lastPos);
+      };
       im.src = url;
-      return im;
     };
-    let im = null;
     const url = r.cover || r.thumb;
-    if (url) im = make(url);
-    else if (r.photoSleeve) photoUrl(r.photoSleeve).then((u) => { if (u) { pics.set(r.id, make(u)); } });
-    pics.set(r.id, im);
+    if (url) make(url);
+    else if (r.photoSleeve) photoUrl(r.photoSleeve).then((u) => { if (u) make(u); });
+    pics.set(r.id, entry);
     if (pics.size > 48) pics.delete(pics.keys().next().value);
-    return im;
+    return entry;
   }
 
   function paintAmbient(pos) {
@@ -92,9 +100,14 @@ export function mount(root) {
     const mid = Math.max(0, Math.min(recs.length - 1, Math.round(pos)));
     const W = amb.width;
     const H = amb.height;
+    actx.filter = 'none';
     actx.globalAlpha = 1;
     actx.fillStyle = `hsl(${hue(recs[mid])} 38% 58%)`;
     actx.fillRect(0, 0, W, H);
+    // The blur is done here, on a 30 by 45 picture, which costs almost nothing. A blur in CSS on a
+    // picture that changes every frame is far slower. Browsers without this fall back to the soft
+    // look you get from stretching a tiny picture.
+    if (CAN_FILTER) actx.filter = 'blur(2.2px) saturate(1.6)';
     const near = [];
     for (let i = mid - 3; i <= mid + 3; i++) {
       if (i < 0 || i >= recs.length) continue;
@@ -102,17 +115,25 @@ export function mount(root) {
       if (Math.abs(d) < 2.6) near.push([i, d]);
     }
     near.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])); // furthest first, so the middle sits on top
+    // Big, tilted, overlapping. With a huge blur on top, the sleeves stop looking like sleeves and
+    // become broad fields of their colours.
     for (const [i, d] of near) {
       const r = recs[i];
-      const a = Math.max(0, Math.min(1, 1.2 - Math.abs(d) * 0.48));
-      const size = 40 - Math.abs(d) * 4;
-      const x = W / 2 + d * 17 - size / 2;
-      const y = H * 0.46 + (((i * 37) % 11) - 5) * 1.5 - size / 2;
+      const a = Math.max(0, Math.min(1, 1.25 - Math.abs(d) * 0.5));
+      const size = W * (1.5 - Math.abs(d) * 0.18);
+      const cx = W / 2 + d * W * 0.34;
+      const cy = H * 0.46 + (((i * 37) % 11) - 5) * H * 0.018;
+      const tilt = (((i * 53) % 41) - 20) * (Math.PI / 180);
+      actx.save();
       actx.globalAlpha = a;
-      const im = pic(r);
-      if (im && im.complete && im.naturalWidth) actx.drawImage(im, x, y, size, size);
-      else { actx.fillStyle = `hsl(${hue(r)} 40% 55%)`; actx.fillRect(x, y, size, size); }
+      actx.translate(cx, cy);
+      actx.rotate(tilt);
+      const p = pic(r);
+      if (p.small) actx.drawImage(p.small, -size / 2, -size / 2, size, size);
+      else { actx.fillStyle = `hsl(${hue(r)} 40% 55%)`; actx.fillRect(-size / 2, -size / 2, size, size); }
+      actx.restore();
     }
+    actx.filter = 'none';
     actx.globalAlpha = 1;
     amb.dataset.mid = recs[mid].id;
     amb.dataset.drawn = String(++drawn);
@@ -139,6 +160,7 @@ export function mount(root) {
     const h = flow.clientHeight || 520;
     C = Math.round(Math.max(150, Math.min(340, w * 0.72, h * 0.52)));
     step = Math.max(40, Math.round(C * 0.34));
+    stage.style.setProperty('--amb-scale', (Math.max((stage.clientWidth || 390) / 60, (stage.clientHeight || 700) / 90) * 1.6).toFixed(2));
     flow.style.setProperty('--C', `${C}px`);
     flow.style.setProperty('--step', `${step}px`);
   }

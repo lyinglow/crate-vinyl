@@ -472,7 +472,7 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 @media (prefers-color-scheme: dark) { .stage { background: radial-gradient(120% 62% at 50% 46%, hsl(var(--ah) 30% 16%), var(--bg) 72%); } }
 .stage-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 0; flex: none; }
 .stage-title { font-size: 28px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
-.stage-sub { font-size: 14px; color: var(--fg2); margin-top: 2px; min-height: 1.3em; font-variant-numeric: tabular-nums; }
+.stage-sub { font-size: 14px; color: var(--fg); opacity: 0.66; margin-top: 2px; min-height: 1.3em; font-variant-numeric: tabular-nums; }
 .flow {
   flex: 1; min-height: 0; display: flex; align-items: stretch;
   overflow-x: scroll; overflow-y: hidden; scroll-snap-type: x mandatory;
@@ -553,12 +553,14 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .sp-miss { color: var(--fg3); }
 
 /* ---------- colour from the sleeves ---------- */
-.ambient { position: absolute; left: -10%; top: -10%; width: 120%; height: 120%; z-index: 0; pointer-events: none; opacity: 0.55; filter: blur(16px) saturate(1.4) brightness(1.08); animation: drift 28s ease-in-out infinite alternate; }
+.ambient-wrap { position: absolute; left: 50%; top: 50%; width: 60px; height: 90px; margin: -45px 0 0 -30px; z-index: 0; pointer-events: none; transform: scale(var(--amb-scale, 6)); will-change: transform; }
+/* A tiny picture, blurred as it is drawn, then scaled up to fill the screen. No CSS filter: those are slow. */
+.ambient { display: block; width: 60px; height: 90px; opacity: 0.66; animation: drift 32s ease-in-out infinite alternate; }
 @keyframes drift {
-  from { transform: scale(1.02) rotate(-2.5deg) translate3d(-1.5%, 0.5%, 0); }
-  to { transform: scale(1.16) rotate(3deg) translate3d(1.8%, -1.2%, 0); }
+  from { transform: scale(1) rotate(-3deg) translate(-3px, 1px); }
+  to { transform: scale(1.18) rotate(4deg) translate(3px, -2px); }
 }
-@media (prefers-color-scheme: dark) { .ambient { opacity: 0.5; filter: blur(16px) saturate(1.45) brightness(0.72); } }
+@media (prefers-color-scheme: dark) { .ambient { opacity: 0.42; } }
 @media (prefers-reduced-motion: reduce) { .ambient { animation: none; } }
 .stage::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 22%; z-index: 0; pointer-events: none; background: linear-gradient(to top, transparent, var(--glass)); }
 .stage::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 36%; z-index: 0; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--glass)); }
