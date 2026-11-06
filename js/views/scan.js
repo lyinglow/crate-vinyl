@@ -186,7 +186,7 @@ function mountBarcode(root) {
 
 function mountSearch(root, linkId) {
   const linkTo = linkId ? state.records.get(linkId) : null;
-  const pre = { catno: '', artist: linkTo ? linkTo.artist : '', title: linkTo ? linkTo.title : '', ...prefill };
+  const pre = { catno: '', label: '', artist: linkTo ? linkTo.artist : '', title: linkTo ? linkTo.title : '', ...prefill };
   if (linkTo && linkTo.catno) pre.catno = linkTo.catno;
   prefill = {};
   let labelBlob = null;
@@ -200,7 +200,10 @@ function mountSearch(root, linkId) {
       ${seg('search', linkId)}
       ${linkTo ? `<p class="note">Finding a match for <b>${esc(linkTo.artist)} · ${esc(linkTo.title)}</b></p>` : ''}
       <form id="sf" class="form">
-        <label class="field"><span>Catalogue number</span><input name="catno" value="${esc(pre.catno)}" placeholder="For example SRK 3573" autocomplete="off" autocapitalize="characters"></label>
+        <div class="two">
+          <label class="field"><span>Label</span><input name="label" value="${esc(pre.label)}" placeholder="For example Catalyst" autocomplete="off"></label>
+          <label class="field"><span>Catalogue number</span><input name="catno" value="${esc(pre.catno)}" placeholder="For example CAT 9908" autocomplete="off" autocapitalize="characters"></label>
+        </div>
         <div class="two">
           <label class="field"><span>Artist</span><input name="artist" value="${esc(pre.artist)}" autocomplete="off"></label>
           <label class="field"><span>Title</span><input name="title" value="${esc(pre.title)}" autocomplete="off"></label>
@@ -234,8 +237,10 @@ function mountSearch(root, linkId) {
     const catno = (fd.get('catno') || '').trim();
     const artist = (fd.get('artist') || '').trim();
     const title = (fd.get('title') || '').trim();
+    const label = (fd.get('label') || '').trim();
     const barcode = ((fd.get('barcode') || '') + '').replace(/\D/g, '');
     if (catno) q.catno = catno;
+    if (label) q.label = label;
     if (artist) q.artist = artist;
     if (title) q.release_title = title;
     if (barcode) q.barcode = barcode;
@@ -266,7 +271,7 @@ function mountSearch(root, linkId) {
       let found = res.results || [];
       // Nothing? Try the catalogue number as plain words. Discogs is fussy about spaces.
       if (!found.length && p === 1 && q.catno) {
-        const q2 = { type: 'release', q: [q.catno, q.artist].filter(Boolean).join(' ') };
+        const q2 = { type: 'release', q: [q.catno, q.label, q.artist].filter(Boolean).join(' ') };
         if (q.format) q2.format = q.format;
         res = await D.search(q2, 1);
         found = res.results || [];
@@ -284,7 +289,7 @@ function mountSearch(root, linkId) {
   form.onsubmit = (e) => {
     e.preventDefault();
     const q = buildQuery();
-    if (!q.catno && !q.artist && !q.release_title && !q.barcode) { toast('Type a catalogue number, or an artist and title.'); return; }
+    if (!q.catno && !q.label && !q.artist && !q.release_title && !q.barcode) { toast('Type a label, a catalogue number, or an artist and title.'); return; }
     lastQuery = q;
     document.activeElement && document.activeElement.blur();
     run(1);
