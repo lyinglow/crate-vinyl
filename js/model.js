@@ -290,6 +290,8 @@ function hay(r) {
 
 export const sortKey = (r) => norm(r.artist).replace(/^(the|a|an) /, '');
 
+export const NONE = '__none';
+
 export function filterRecords(list, f) {
   const words = norm(f.q).split(/\s+/).filter(Boolean);
   const label = norm(f.label);
@@ -298,7 +300,10 @@ export function filterRecords(list, f) {
   const to = f.to ? Number(f.to) : 9999;
   return list.filter((r) => {
     if (f.status && f.status !== 'all' && r.status !== f.status) return false;
-    if (f.genre && !(r.genres || []).includes(f.genre)) return false;
+    if (f.genre) {
+      if (f.genre === NONE) { if ((r.genres || []).length) return false; } else if (!(r.genres || []).includes(f.genre)) return false;
+    }
+    if (f.style && !(r.styles || []).includes(f.style)) return false;
     if (f.format && !(r.formatTags || []).includes(f.format)) return false;
     if (label && !norm(r.label).includes(label)) return false;
     if (artist && !norm(r.artist).includes(artist)) return false;
@@ -326,13 +331,39 @@ export function sortRecords(list, how) {
 
 export function facets(list) {
   const genres = new Map();
+  const styles = new Map();
   const formats = new Map();
   for (const r of list) {
     (r.genres || []).forEach((g) => genres.set(g, (genres.get(g) || 0) + 1));
+    (r.styles || []).forEach((g) => styles.set(g, (styles.get(g) || 0) + 1));
     (r.formatTags || []).forEach((g) => { if (g !== 'Vinyl' && g !== 'All Media') formats.set(g, (formats.get(g) || 0) + 1); });
   }
   const top = (m, n) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map((e) => e[0]).sort();
-  return { genres: top(genres, 40), formats: top(formats, 30) };
+  return { genres: top(genres, 40), formats: top(formats, 30), styles: top(styles, 120) };
+}
+
+const byCount = (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]);
+
+// Genres with how many records have each, biggest first. Also how many have none.
+export function genreCounts(list) {
+  const m = new Map();
+  let none = 0;
+  for (const r of list) {
+    const g = r.genres || [];
+    if (!g.length) none++;
+    g.forEach((x) => m.set(x, (m.get(x) || 0) + 1));
+  }
+  return { genres: [...m.entries()].sort(byCount), none };
+}
+
+// Styles with counts. Pass a genre to see only the styles inside it.
+export function styleCounts(list, genre) {
+  const m = new Map();
+  for (const r of list) {
+    if (genre && genre !== NONE && !(r.genres || []).includes(genre)) continue;
+    (r.styles || []).forEach((x) => m.set(x, (m.get(x) || 0) + 1));
+  }
+  return [...m.entries()].sort(byCount).slice(0, 80);
 }
 
 export function ago(ts) {

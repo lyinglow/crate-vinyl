@@ -11,6 +11,7 @@ import * as M from '../model.js';
 import { esc, cover, icon, hue, hydratePhotos } from '../ui.js';
 import { filterState as F, filtersOn } from './library.js';
 import { gallerySlides, slideUrl } from '../gallery.js';
+import { openGenreSheet, genreLabel, genreOn } from './genres.js';
 import { ensureDetail } from '../sync.js';
 
 const LIVE = 6; // sleeves drawn on each side of the middle
@@ -29,7 +30,10 @@ export function mount(root) {
     <div class="stage" id="stage">
       <div class="stage-top">
         <div><div class="stage-title">Library</div><div class="stage-sub" id="st-count"></div></div>
-        <a class="icon-btn" href="#/browse" aria-label="Browse as a grid. Search and filter.">${icon('grid', 22)}<i class="dot" id="st-dot" hidden></i></a>
+        <div class="stage-actions">
+          <button class="pill-btn" id="genre-pill" aria-label="Filter by genre"></button>
+          <a class="icon-btn" href="#/browse" aria-label="Browse as a grid. Search and filter.">${icon('grid', 22)}<i class="dot" id="st-dot" hidden></i></a>
+        </div>
       </div>
       <div class="flow" id="flow" tabindex="0" aria-label="Your records. Swipe sideways to browse."></div>
       <div class="cap" id="cap" role="button" tabindex="0" aria-live="polite" aria-label="Open this record">
@@ -42,7 +46,14 @@ export function mount(root) {
   const flow = root.querySelector('#flow');
   const cap = root.querySelector('#cap');
   const hint = root.querySelector('#hint');
-  root.querySelector('#st-dot').hidden = !filtersOn();
+  const pill = root.querySelector('#genre-pill');
+  const paintPill = () => {
+    pill.textContent = genreLabel();
+    pill.classList.toggle('on', genreOn());
+    root.querySelector('#st-dot').hidden = !filtersOn() || (genreOn() && !F.q && !F.label && !F.artist && !F.format && !F.from && !F.to && F.status === 'all');
+  };
+  paintPill();
+  pill.onclick = () => openGenreSheet(() => { build(lastId); paintPill(); });
 
   let recs = [];
   let items = [];
@@ -355,7 +366,7 @@ export function mount(root) {
   const off = subscribe((k) => {
     if (k !== 'records') return;
     clearTimeout(redraw);
-    redraw = setTimeout(() => { build(lastId); root.querySelector('#st-dot').hidden = !filtersOn(); }, 250);
+    redraw = setTimeout(() => { build(lastId); paintPill(); }, 250);
   });
 
   return () => {

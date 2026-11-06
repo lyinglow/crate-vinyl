@@ -6,11 +6,11 @@ import { exportBackup } from '../exporter.js';
 import { lovedCount } from './loved.js';
 
 // Kept while the app is open, so coming back from a record keeps your place.
-const v = { q: '', status: 'all', genre: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added', count: 120, scroll: 0 };
+const v = { q: '', status: 'all', genre: '', style: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added', count: 120, scroll: 0 };
 const STEP = 120;
 
 export const filterState = v;
-export const filtersOn = () => !!(v.genre || v.format || v.label || v.artist || v.from || v.to);
+export const filtersOn = () => !!(v.genre || v.style || v.format || v.label || v.artist || v.from || v.to);
 
 export function mount(root) {
   const s = state.settings;
@@ -120,7 +120,7 @@ export function mount(root) {
   }
 
   function clearFilters() {
-    Object.assign(v, { genre: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added', count: STEP });
+    Object.assign(v, { genre: '', style: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added', count: STEP });
   }
 
   // ---- events ----
@@ -166,8 +166,9 @@ function filterSheet(onApply) {
       <label class="field"><span>Label</span><input name="label" value="${esc(v.label)}" autocomplete="off"></label>
       <div class="two">
         <label class="field"><span>Genre</span>${sel('genre', f.genres, v.genre, 'Any')}</label>
-        <label class="field"><span>Format</span>${sel('format', f.formats, v.format, 'Any')}</label>
+        <label class="field"><span>Style</span>${sel('style', f.styles, v.style, 'Any')}</label>
       </div>
+      <label class="field"><span>Format</span>${sel('format', f.formats, v.format, 'Any')}</label>
       <div class="two">
         <label class="field"><span>Year from</span><input name="from" inputmode="numeric" maxlength="4" value="${esc(v.from)}"></label>
         <label class="field"><span>Year to</span><input name="to" inputmode="numeric" maxlength="4" value="${esc(v.to)}"></label>
@@ -186,13 +187,13 @@ function filterSheet(onApply) {
   form.onsubmit = (e) => {
     e.preventDefault();
     const fd = new FormData(form);
-    for (const k of ['sort', 'artist', 'label', 'genre', 'format', 'from', 'to']) v[k] = String(fd.get(k) || '').trim();
+    for (const k of ['sort', 'artist', 'label', 'genre', 'style', 'format', 'from', 'to']) v[k] = String(fd.get(k) || '').trim();
     v.sort = v.sort || 'added';
     s.close();
     onApply();
   };
   s.el.querySelector('#clear').onclick = () => {
-    Object.assign(v, { genre: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added' });
+    Object.assign(v, { genre: '', style: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added' });
     s.close();
     onApply();
   };

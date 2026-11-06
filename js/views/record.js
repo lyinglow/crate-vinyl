@@ -6,6 +6,7 @@ import { esc, icon, openSheet, confirmSheet, toast, chipRow, bindChips, hydrateP
 import { openSellSheet, openSoldSheet } from './sell.js';
 import { openMatchSheet } from './match.js';
 import { mountFlipper } from '../flipper.js';
+import { filterState as F } from './library.js';
 import { gallerySlides } from '../gallery.js';
 import { openAddToMix } from './mixes.js';
 
@@ -59,7 +60,19 @@ export function mount(root, args) {
       <p class="rartist">${esc(rec.artist || 'Unknown artist')}</p>
       ${bits ? `<p class="meta">${esc(bits)}</p>` : ''}
       ${more ? `<p class="meta">${esc(more)}</p>` : ''}
-      ${rec.source === 'manual' ? '<p class="meta">Added by hand. Not matched to Discogs.</p>' : ''}`;
+      ${rec.source === 'manual' ? '<p class="meta">Added by hand. Not matched to Discogs.</p>' : ''}
+      ${(rec.genres || []).length || (rec.styles || []).length ? `<div class="chips tags" id="r-tags">${(rec.genres || []).map((g) => `<button class="chip" data-genre="${esc(g)}">${esc(g)}</button>`).join('')}${(rec.styles || []).map((x) => `<button class="chip soft" data-style="${esc(x)}">${esc(x)}</button>`).join('')}</div>` : ''}`;
+    const tags = $('#r-tags', root);
+    if (tags) {
+      tags.onclick = (e) => {
+        const g = e.target.closest('[data-genre]');
+        const st = e.target.closest('[data-style]');
+        if (!g && !st) return;
+        // Show every record of this kind in the cover flow.
+        Object.assign(F, { q: '', status: 'all', genre: g ? g.dataset.genre : '', style: st ? st.dataset.style : '', label: '', artist: '', format: '', from: '', to: '' });
+        location.hash = '#/library';
+      };
+    }
   }
 
   // ------------------------------------------------------ status

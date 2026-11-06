@@ -463,7 +463,7 @@ body[data-view="library"] #view { max-width: none; padding: 0; min-height: 0; ov
 #tabs { view-transition-name: tabs; }
 .stage {
   --ah: 220;
-  position: relative; display: flex; flex-direction: column;
+  position: relative; isolation: isolate; z-index: 0; display: flex; flex-direction: column;
   height: calc(100vh - var(--tab-h) - var(--sb)); height: calc(100dvh - var(--tab-h) - var(--sb));
   background: radial-gradient(120% 62% at 50% 46%, hsl(var(--ah) 38% 92%), var(--bg) 72%);
   overflow: hidden;
@@ -522,3 +522,12 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .no-vt .screen { animation: screen-in 0.28s ease both; }
 @keyframes screen-in { from { opacity: 0; transform: translateY(8px); } }
 @media (prefers-reduced-motion: reduce) { .no-vt .screen { animation: none; } .dots i { transition: none; } }
+
+/* ---------- genre filter ---------- */
+.stage-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pill-btn { height: 42px; max-width: 52vw; padding: 0 16px; border: 0; border-radius: 12px; background: var(--bg2); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill-btn.on { background: var(--btn); color: var(--btnfg); }
+.chip .n { margin-left: 7px; font-size: 12px; font-weight: 500; opacity: 0.55; font-variant-numeric: tabular-nums; }
+.chips.tags { margin-top: 12px; }
+.chips.tags .chip { font-size: 13px; padding: 7px 12px; }
+.chip.soft { background: transparent !important; box-shadow: inset 0 0 0 1px var(--line); color: var(--fg2); }
