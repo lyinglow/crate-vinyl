@@ -37,6 +37,12 @@ Could come next:
 - A way to fix a wrong match by hand, by choosing from Spotify's search results.
 - Save whole albums to your Spotify library instead of single tracks.
 
+## The same library on every device
+
+Crate keeps its data on each phone or computer separately. A new device starts empty. Today you move records with Back up everything on one device and Restore on the other. They do not stay in step afterwards.
+
+The idea: an optional account so your records, grades, mixes and hearts follow you everywhere. It would need a small server and a login, which is a real step up in cost and care. The Discogs collection already holds a copy of the record list, so a lighter option is to import from Discogs on each new device.
+
 ## Smaller ideas
 
 - Voice notes on a record: hold a button, say it, and it saves with the record. Works on iPhone and stays on the phone.

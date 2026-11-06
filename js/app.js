@@ -112,13 +112,15 @@ async function holdScreen(on) {
 
 function drawBar() {
   const waiting = net.waitingUntil > Date.now();
-  const show = state.settings.token && (sync.error || waiting || (sync.running && sync.pending > 0) || sync.paused);
-  holdScreen(!!sync.running);
+  const spBusy = spotify.status.busy && spotify.lovedPending() > 2;
+  const show = (state.settings.token && (sync.error || waiting || (sync.running && sync.pending > 0) || sync.paused)) || spBusy;
+  holdScreen(!!sync.running || spBusy);
   if (!show) { bar.hidden = true; document.body.classList.remove('has-bar'); return; }
   let text;
   if (sync.paused) text = 'Sync paused';
   else if (sync.error) text = sync.error;
   else if (waiting) text = 'Waiting a moment for Discogs';
+  else if (spBusy && !(sync.running && sync.pending > 0)) text = `Adding tracks to Spotify. ${spotify.lovedPending().toLocaleString('en-GB')} to go`;
   else text = `${sync.label || 'Syncing with Discogs'}. ${sync.pending.toLocaleString('en-GB')} to go`;
   bar.hidden = false;
   document.body.classList.add('has-bar');
@@ -161,7 +163,7 @@ async function boot() {
     view.innerHTML = `<div class="page"><div class="empty"><h2>Storage is not available</h2><p>${esc(e.message || 'This browser would not open its storage.')}</p><p class="muted">Try leaving Private Browsing, or open the app from your Home Screen.</p></div></div>`;
     return;
   }
-  subscribe((k) => { if (k === 'sync' || k === 'net') drawBar(); });
+  subscribe((k) => { if (k === 'sync' || k === 'net' || k === 'spotify') drawBar(); });
   subscribe((k) => {
     if (k !== 'spotify' || spotify.status.busy || !spotify.missed.length) return;
     const names = spotify.missed.splice(0);

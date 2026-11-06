@@ -26,6 +26,7 @@ export const DEFAULTS = {
   spotifyApiBase: '',
   spotify: null,
   spotifyAuto: true,
+  spotifyAll: true,
   spotifyPlaylists: {},
   spotifyQueue: [],
 };
@@ -129,6 +130,15 @@ export async function deleteRecord(id) {
   await req(os('records', 'readwrite').delete(id));
   if (r) for (const p of [r.photoSleeve, r.photoLabel]) if (p) await delPhoto(p);
   emit('records');
+}
+
+export async function getMeta(key) {
+  const r = await req(os('meta').get(key));
+  return r ? r.value : undefined;
+}
+
+export async function setMeta(key, value) {
+  await req(os('meta', 'readwrite').put({ key, value }));
 }
 
 export async function saveSettings(patch) {

@@ -58,7 +58,7 @@ Until then, Crate shows the cheapest price for sale, and you can still mark reco
 
 ## Connect Spotify (optional)
 
-Crate can put the tracks you heart into a private Spotify playlist called **Crate loved**, and send any mix to Spotify as its own playlist.
+Crate keeps two private Spotify playlists for you: **Crate collection** holds every track of every vinyl you add, and **Crate loved** holds the tracks you heart. Any mix can also be sent to Spotify as its own playlist.
 
 **One time setup**
 1. Go to `developer.spotify.com/dashboard` and open your app.
@@ -71,15 +71,19 @@ Crate can put the tracks you heart into a private Spotify playlist called **Crat
 On iPhone, Spotify sometimes returns you to a different window from the one Crate opened. That window shows a short code. Tap **Copy the code**, close the window, and open Crate again. In **Settings**, **Spotify**, open **Came back from Spotify with a code?**, paste the code and tap **Use this code**.
 
 **Using it**
-- Tap the heart on a track. A moment later it is on your **Crate loved** playlist. A green tick means it is on Spotify. A grey cross means Spotify did not have it.
-- Open a mix and tap **Send to Spotify**. Tap it again later to add tracks you added since.
-- **Settings**, **Spotify**, **Add my loved tracks now** sends every heart you already have.
+- **New vinyl:** when you add a record, Crate gets its tracklist from Discogs and adds every track to **Crate collection**. Switch this off in **Settings**, **Spotify**.
+- **Hearts:** tap the heart on a track. A moment later it is on **Crate loved**. A green tick on the tracklist means it is on Spotify. A grey cross means Spotify did not have it.
+- **Records you already own:** **Settings**, **Spotify**, **Add my whole collection now**. It warns how long it will take. 2,000 records take around an hour or two. Keep Crate open and your screen on. It carries on where it stopped if you close it.
+- **Hearts you already have:** **Add my loved tracks now**.
+- **Mixes:** open a mix and tap **Send to Spotify**. Tap it again later to add tracks you added since.
+- **Several devices:** each phone or computer connects to Spotify on its own. Crate finds the playlists by name, so they are shared and not duplicated.
 - Taking a heart off does not remove the track from the playlist. Do that in Spotify.
 
 **Things to know**
 - Crate searches Spotify for each track. It prefers the studio version and skips live, remix and instrumental versions unless that is what Discogs lists. Check the playlist now and then.
-- It only adds while Crate is open, so leave the app open for a moment after hearting.
-- A Spotify playlist holds up to 10,000 tracks.
+- It only adds while Crate is open, so leave the app open for a moment after adding a record or hearting a track.
+- A Spotify playlist holds up to 10,000 tracks. When **Crate collection** fills up, Crate starts **Crate collection 2**, and so on.
+- The same song on two records is added once.
 - Spotify limits new developer apps. If sign in is refused, check your app's settings on the Spotify dashboard.
 
 ## If something goes wrong

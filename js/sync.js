@@ -7,6 +7,7 @@
 import { state, saveRecord, saveRecords, saveSettings, emit } from './store.js';
 import { D, ApiError } from './discogs.js';
 import * as M from './model.js';
+import * as SP from './spotify.js';
 
 export const status = { running: false, paused: false, pending: 0, label: '', error: '' };
 
@@ -123,6 +124,7 @@ async function runTask(rec, kind) {
   } else if (kind === 'detail') {
     const rel = await D.release(rec.releaseId, 2);
     M.applyRelease(rec, rel, state.settings.currency);
+    if (state.records.has(rec.id)) { await saveRecord(rec, { quiet: true }); SP.enqueueRecord(rec); } // a new vinyl: its tracks go to Spotify too
   } else if (kind === 'fields') {
     await pushFields(rec);
   } else if (kind === 'price') {

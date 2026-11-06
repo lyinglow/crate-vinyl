@@ -9,6 +9,7 @@
 import { state, subscribe } from '../store.js';
 import * as M from '../model.js';
 import { esc, cover, icon, hue, hydratePhotos } from '../ui.js';
+import { photoUrl } from '../store.js';
 import { filterState as F, filtersOn } from './library.js';
 import { gallerySlides, slideUrl } from '../gallery.js';
 import { openGenreSheet, genreLabel, genreOn } from './genres.js';
@@ -28,6 +29,7 @@ const markOpened = () => { try { localStorage.setItem('crate.opened', '1'); } ca
 export function mount(root) {
   root.innerHTML = `
     <div class="stage" id="stage">
+      <canvas class="ambient" id="amb" width="56" height="84" aria-hidden="true"></canvas>
       <div class="stage-top">
         <div><div class="stage-title">Library</div><div class="stage-sub" id="st-count"></div></div>
         <div class="stage-actions">
@@ -54,6 +56,67 @@ export function mount(root) {
   };
   paintPill();
   pill.onclick = () => openGenreSheet(() => { build(lastId); paintPill(); });
+
+  // ---------------------------------------------------------------- the colour behind
+  // A tiny canvas, stretched to fill the screen and blurred by CSS. The sleeves near the middle are
+  // drawn on it small, so their colours melt into each other and slide as you scroll. Drawing an image
+  // is allowed even from another site. Reading its pixels is not, which is why this does it by painting.
+  const amb = root.querySelector('#amb');
+  const actx = amb.getContext('2d');
+  const pics = new Map();
+  let lastPos = 0;
+  let drawn = 0;
+
+  function pic(r) {
+    if (pics.has(r.id)) return pics.get(r.id);
+    const make = (url) => {
+      const im = new Image();
+      im.decoding = 'async';
+      im.referrerPolicy = 'no-referrer';
+      im.onload = () => paintAmbient(lastPos);
+      im.src = url;
+      return im;
+    };
+    let im = null;
+    const url = r.cover || r.thumb;
+    if (url) im = make(url);
+    else if (r.photoSleeve) photoUrl(r.photoSleeve).then((u) => { if (u) { pics.set(r.id, make(u)); } });
+    pics.set(r.id, im);
+    if (pics.size > 48) pics.delete(pics.keys().next().value);
+    return im;
+  }
+
+  function paintAmbient(pos) {
+    lastPos = pos;
+    if (!recs.length) return;
+    const mid = Math.max(0, Math.min(recs.length - 1, Math.round(pos)));
+    const W = amb.width;
+    const H = amb.height;
+    actx.globalAlpha = 1;
+    actx.fillStyle = `hsl(${hue(recs[mid])} 38% 58%)`;
+    actx.fillRect(0, 0, W, H);
+    const near = [];
+    for (let i = mid - 3; i <= mid + 3; i++) {
+      if (i < 0 || i >= recs.length) continue;
+      const d = i - pos;
+      if (Math.abs(d) < 2.6) near.push([i, d]);
+    }
+    near.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])); // furthest first, so the middle sits on top
+    for (const [i, d] of near) {
+      const r = recs[i];
+      const a = Math.max(0, Math.min(1, 1.2 - Math.abs(d) * 0.48));
+      const size = 40 - Math.abs(d) * 4;
+      const x = W / 2 + d * 17 - size / 2;
+      const y = H * 0.46 + (((i * 37) % 11) - 5) * 1.5 - size / 2;
+      actx.globalAlpha = a;
+      const im = pic(r);
+      if (im && im.complete && im.naturalWidth) actx.drawImage(im, x, y, size, size);
+      else { actx.fillStyle = `hsl(${hue(r)} 40% 55%)`; actx.fillRect(x, y, size, size); }
+    }
+    actx.globalAlpha = 1;
+    amb.dataset.mid = recs[mid].id;
+    amb.dataset.drawn = String(++drawn);
+  }
 
   let recs = [];
   let items = [];
@@ -170,6 +233,7 @@ export function mount(root) {
       if (!live.has(i)) mountItem(i);
       place(live.get(i), i - pos);
     }
+    paintAmbient(pos);
     const center = Math.max(0, Math.min(recs.length - 1, Math.round(pos)));
     if (center !== cur) {
       cur = center;

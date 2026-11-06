@@ -119,7 +119,7 @@ export function openMatchSheet({ cands, start = 0, barcode = '', labelBlob = nul
       if (changeFor) {
         if (changeFor.instanceId) await removeFromCollection(changeFor);
         applyShell(changeFor, c);
-        Object.assign(changeFor, { market: null, tracklist: undefined, images: undefined, identifiers: undefined, releaseNotes: '', community: null });
+        Object.assign(changeFor, { market: null, tracklist: undefined, images: undefined, identifiers: undefined, releaseNotes: '', community: null, spotify: undefined, spAllDone: false });
         await saveRecord(changeFor);
         kick();
         s.close();

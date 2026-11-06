@@ -551,3 +551,15 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .sp-ok, .sp-miss { display: grid; place-items: center; width: 22px; height: 30px; }
 .sp-ok { color: var(--good); }
 .sp-miss { color: var(--fg3); }
+
+/* ---------- colour from the sleeves ---------- */
+.ambient { position: absolute; left: -10%; top: -10%; width: 120%; height: 120%; z-index: 0; pointer-events: none; opacity: 0.55; filter: blur(16px) saturate(1.4) brightness(1.08); animation: drift 28s ease-in-out infinite alternate; }
+@keyframes drift {
+  from { transform: scale(1.02) rotate(-2.5deg) translate3d(-1.5%, 0.5%, 0); }
+  to { transform: scale(1.16) rotate(3deg) translate3d(1.8%, -1.2%, 0); }
+}
+@media (prefers-color-scheme: dark) { .ambient { opacity: 0.5; filter: blur(16px) saturate(1.45) brightness(0.72); } }
+@media (prefers-reduced-motion: reduce) { .ambient { animation: none; } }
+.stage::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 22%; z-index: 0; pointer-events: none; background: linear-gradient(to top, transparent, var(--glass)); }
+.stage::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 36%; z-index: 0; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--glass)); }
+.stage > .stage-top, .stage > .flow, .stage > .cap, .stage > .cap-hint, .stage > .empty { position: relative; z-index: 1; }

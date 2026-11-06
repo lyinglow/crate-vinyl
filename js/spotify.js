@@ -1,12 +1,13 @@
 // Spotify: sign in, find each track on Spotify, and fill playlists.
-//   Hearted tracks go into one private playlist called "Crate loved", in the background.
+//   "Crate loved": every track you heart.
+//   "Crate collection": every track of each record you add (a new one starts at 10,000 tracks).
 //   A mix can be sent to Spotify as its own private playlist.
 // Sign in uses PKCE, so there is no secret anywhere. Only your Client ID (public by design) is needed.
-import { state, saveSettings, saveRecord, saveMixes, emit } from './store.js';
+import { state, saveSettings, saveRecord, saveMixes, emit, getMeta, setMeta } from './store.js';
 import * as M from './model.js';
 import { seconds } from './mixes.js';
 
-export const SCOPES = 'playlist-modify-private';
+export const SCOPES = 'playlist-modify-private playlist-read-private';
 const PENDING = 'crate.spotify.pending';
 export const LOVED_NAME = 'Crate loved';
 
@@ -203,7 +204,8 @@ export function scoreCandidate(c, want) {
   if (want.seconds && c.duration_ms) {
     const d = Math.abs(c.duration_ms / 1000 - want.seconds);
     if (d <= 4) score += 1;
-    else if (d > 25) score -= 2;
+    else if (d > 90) score -= 2; // very different, probably another version
+    else if (d > 25) score -= 1; // Discogs times often belong to the pressing, not the album track
   }
   const al = strip(c.album && c.album.name);
   const wa = strip(want.album);
@@ -239,6 +241,9 @@ export async function matchTrack(want) {
 
 // ---------------------------------------------------------------- playlists
 
+export const ALL_NAME = 'Crate collection';
+const LIMIT = () => S().spotifyAllLimit || 10000; // a Spotify playlist holds 10,000 tracks
+
 async function createPlaylist(name, description) {
   const body = { name, description, public: false };
   try {
@@ -262,15 +267,76 @@ async function addUris(playlistId, uris) {
   }
 }
 
+// Another phone or computer may already have made this playlist. Look for it by name first.
+async function findPlaylist(name) {
+  try {
+    for (let offset = 0; offset < 400; offset += 50) {
+      const res = await call('/v1/me/playlists', { query: { limit: 50, offset } });
+      const items = res.items || [];
+      const hit = items.find((p) => p && p.name === name && p.owner && p.owner.id === S().spotify.userId);
+      if (hit) return { id: hit.id, total: (hit.tracks && hit.tracks.total) ?? (hit.items && hit.items.total) ?? 0 };
+      if (items.length < 50) break;
+    }
+  } catch (e) {
+    if (e.status === 0) throw e; // no permission to look, so just make a new one
+  }
+  return null;
+}
+
+async function namedPlaylist(name, description) {
+  return (await findPlaylist(name)) || { id: await createPlaylist(name, description), total: 0 };
+}
+
 async function lovedPlaylist() {
   const ids = S().spotifyPlaylists || {};
   if (ids.loved) return ids.loved;
-  const id = await createPlaylist(LOVED_NAME, 'Tracks I love from my record collection. Made by Crate.');
-  await saveSettings({ spotifyPlaylists: { ...ids, loved: id } });
+  const { id } = await namedPlaylist(LOVED_NAME, 'Tracks I love from my record collection. Made by Crate.');
+  await saveSettings({ spotifyPlaylists: { ...(S().spotifyPlaylists || {}), loved: id } });
   return id;
 }
 
-// ---------------------------------------------------------------- hearted tracks
+// When "Crate collection" fills up, the next one is called "Crate collection 2", and so on.
+async function addToCollection(uris) {
+  const plays = { ...(S().spotifyPlaylists || {}) };
+  const all = [...(plays.all || [])];
+  let rest = uris.slice();
+  for (let guard = 0; rest.length && guard < 50; guard++) {
+    let cur = all[all.length - 1];
+    if (!cur || cur.n >= LIMIT()) {
+      const name = all.length ? `${ALL_NAME} ${all.length + 1}` : ALL_NAME;
+      const f = await namedPlaylist(name, 'Every track from my record collection. Made by Crate.');
+      cur = { id: f.id, n: f.total };
+      all.push(cur);
+      if (cur.n >= LIMIT()) continue;
+    }
+    const chunk = rest.slice(0, LIMIT() - cur.n);
+    await addUris(cur.id, chunk);
+    cur.n += chunk.length;
+    rest = rest.slice(chunk.length);
+  }
+  await saveSettings({ spotifyPlaylists: { ...plays, all } });
+}
+
+// Tracks already in the collection playlists, so the same song on two records is added once.
+let uriSet = null;
+let dirty = 0;
+const known = async () => { if (!uriSet) uriSet = new Set((await getMeta('spAllUris')) || []); return uriSet; };
+const keepKnown = async (force) => { if (uriSet && (force || dirty >= 40)) { await setMeta('spAllUris', [...uriSet]); dirty = 0; } };
+
+// ---------------------------------------------------------------- the queue
+// Jobs are kept in the settings, so closing the app does not lose them.
+//   love: add one hearted track to "Crate loved"
+//   rec:  add every track of one record to "Crate collection"
+
+const queue = () => S().spotifyQueue || [];
+const kindOf = (j) => j.kind || 'love';
+
+async function push(job) {
+  const q = queue();
+  if (q.some((j) => kindOf(j) === job.kind && j.recId === job.recId && j.key === job.key)) return false;
+  await saveSettings({ spotifyQueue: [...q, job] });
+  return true;
+}
 
 const trackOf = (rec, key) => (rec.tracklist || []).find((t) => M.trackKey(t) === key) || (() => {
   const [position, ...rest] = key.split('|');
@@ -283,18 +349,15 @@ export function loveStatus(rec, track) {
   return e.added ? 'added' : e.miss ? 'miss' : '';
 }
 
-export const lovedPending = () => (S().spotifyQueue || []).length;
+export const lovedPending = () => queue().length;
+export const recsPending = () => queue().filter((j) => kindOf(j) === 'rec').length;
 
 export async function enqueueLove(rec, track) {
   if (!connected() || S().spotifyAuto === false) return;
   const key = M.trackKey(track);
-  const q = S().spotifyQueue || [];
-  if (q.some((j) => j.recId === rec.id && j.key === key)) return;
   const e = rec.spotify && rec.spotify[key];
   if (e && e.added) return;
-  await saveSettings({ spotifyQueue: [...q, { recId: rec.id, key }] });
-  note();
-  kickLoved();
+  if (await push({ kind: 'love', recId: rec.id, key })) { note(); kickLoved(); }
 }
 
 export async function enqueueAllLoved() {
@@ -303,11 +366,27 @@ export async function enqueueAllLoved() {
     for (const key of rec.loved || []) {
       const e = rec.spotify && rec.spotify[key];
       if (e && e.added) continue;
-      const q = S().spotifyQueue || [];
-      if (q.some((j) => j.recId === rec.id && j.key === key)) continue;
-      await saveSettings({ spotifyQueue: [...q, { recId: rec.id, key }] });
-      n++;
+      if (await push({ kind: 'love', recId: rec.id, key })) n++;
     }
+  }
+  note();
+  kickLoved();
+  return n;
+}
+
+// A new record: add all its tracks.
+export async function enqueueRecord(rec) {
+  if (!connected() || S().spotifyAll === false || rec.spAllDone) return;
+  if (await push({ kind: 'rec', recId: rec.id })) { note(); kickLoved(); }
+}
+
+// Everything you already own. Records with no tracklist yet are fetched from Discogs as it goes.
+export async function enqueueWholeCollection() {
+  let n = 0;
+  for (const rec of state.records.values()) {
+    if (rec.spAllDone || rec.status === 'sold') continue;
+    if (!(rec.tracklist && rec.tracklist.length) && !(rec.source === 'discogs' && rec.releaseId)) continue;
+    if (await push({ kind: 'rec', recId: rec.id })) n++;
   }
   note();
   kickLoved();
@@ -323,38 +402,53 @@ export async function kickLoved() {
   status.busy = true;
   note();
   try {
-    while (connected() && (S().spotifyQueue || []).length) {
+    while (connected() && queue().length) {
       if (navigator.onLine === false) break;
-      const job = S().spotifyQueue[0];
-      const rest = S().spotifyQueue.slice(1);
-      const rec = state.records.get(job.recId);
-      if (rec && (rec.loved || []).includes(job.key)) {
-        const track = trackOf(rec, job.key);
-        rec.spotify = rec.spotify || {};
-        let e = rec.spotify[job.key];
-        if (!e || (!e.added && !e.uri && !e.miss)) {
-          const m = await matchTrack({ title: track.title, artist: rec.artist, album: rec.title, seconds: seconds(track.duration) });
-          e = m ? { uri: m.uri, name: m.name } : { miss: true };
-          if (!m) missed.push(track.title);
-        }
-        if (e.uri && !e.added) {
-          await addToLoved(e.uri);
-          e.added = true;
-        }
-        rec.spotify[job.key] = e;
-        await saveRecord(rec, { quiet: true });
+      const job = queue()[0];
+      let skipped = '';
+      try {
+        if (kindOf(job) === 'rec') await doRecord(job);
+        else await doLove(job);
+      } catch (e) {
+        // A problem with this one track or playlist is skipped. Anything else stops the queue.
+        if (![400, 404, 422].includes(e.status)) throw e;
+        skipped = e.message;
       }
-      await saveSettings({ spotifyQueue: rest });
-      status.error = '';
+      await saveSettings({ spotifyQueue: queue().slice(1) });
+      status.error = skipped;
+      await keepKnown(false);
       note();
     }
   } catch (e) {
     status.error = e.message;
     if (e.status === 0) setTimeout(kickLoved, 30000);
   } finally {
+    await keepKnown(true).catch(() => {});
     running = false;
     status.busy = false;
     note();
+  }
+}
+
+async function doLove(job) {
+  const rec = state.records.get(job.recId);
+  if (!rec || !(rec.loved || []).includes(job.key)) return;
+  const track = trackOf(rec, job.key);
+  rec.spotify = rec.spotify || {};
+  let e = rec.spotify[job.key];
+  try {
+    if (!e || (!e.uri && !e.miss)) {
+      const m = await matchTrack({ title: track.title, artist: rec.artist, album: rec.title, seconds: seconds(track.duration) });
+      e = m ? { uri: m.uri, name: m.name } : { miss: true };
+      rec.spotify[job.key] = e;
+      if (!m) missed.push(track.title);
+    }
+    if (e.uri && !e.added) {
+      await addToLoved(e.uri);
+      e.added = true;
+    }
+  } finally {
+    await saveRecord(rec, { quiet: true });
   }
 }
 
@@ -366,6 +460,45 @@ async function addToLoved(uri) {
     // Someone deleted the playlist in Spotify. Make a new one.
     await saveSettings({ spotifyPlaylists: { ...(S().spotifyPlaylists || {}), loved: '' } });
     await addUris(await lovedPlaylist(), [uri]);
+  }
+}
+
+async function doRecord(job) {
+  const rec = state.records.get(job.recId);
+  if (!rec || rec.spAllDone) return;
+  if (!(rec.tracklist && rec.tracklist.length) && rec.source === 'discogs' && rec.releaseId) {
+    const { ensureDetail } = await import('./sync.js');
+    try { await ensureDetail(rec); } catch (e) { if (e.status === 0 || e.status === 401) throw e; }
+  }
+  const tracks = (rec.tracklist || []).filter((t) => !t.heading && t.title);
+  const have = await known();
+  rec.spotify = rec.spotify || {};
+  const fresh = [];
+  try {
+    for (const t of tracks) {
+      const key = M.trackKey(t);
+      let e = rec.spotify[key];
+      if (!e || (!e.uri && !e.miss)) {
+        const m = await matchTrack({ title: t.title, artist: rec.artist, album: rec.title, seconds: seconds(t.duration) });
+        e = m ? { uri: m.uri, name: m.name } : { miss: true };
+        rec.spotify[key] = e;
+        await sleep(120); // be gentle with Spotify
+      }
+      if (e.uri && !e.all) {
+        if (have.has(e.uri)) e.all = true;
+        else fresh.push(e);
+      }
+    }
+    const uris = [...new Set(fresh.map((e) => e.uri))];
+    if (uris.length) {
+      await addToCollection(uris);
+      uris.forEach((u) => have.add(u));
+      dirty += uris.length;
+      fresh.forEach((e) => { e.all = true; });
+    }
+    rec.spAllDone = true;
+  } finally {
+    await saveRecord(rec, { quiet: true });
   }
 }
 

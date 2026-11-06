@@ -110,11 +110,16 @@ function spotifyCard(s) {
   if (SP.connected()) {
     const pl = (s.spotifyPlaylists || {}).loved;
     return `<p>Connected as <b>${esc(s.spotify.name || 'Spotify')}</b></p>
-      <label class="switch"><input type="checkbox" id="sp-auto" ${s.spotifyAuto !== false ? 'checked' : ''}><span>Add tracks I heart to my "${esc(SP.LOVED_NAME)}" playlist</span></label>
+      <label class="switch"><input type="checkbox" id="sp-all" ${s.spotifyAll !== false ? 'checked' : ''}><span>Add every track of each record I add to "${esc(SP.ALL_NAME)}"</span></label>
+      <label class="switch"><input type="checkbox" id="sp-auto" ${s.spotifyAuto !== false ? 'checked' : ''}><span>Add tracks I heart to "${esc(SP.LOVED_NAME)}"</span></label>
       <p class="muted" id="sp-state"></p>
       <div class="row-btns">
         <button class="btn small" id="sp-now">Add my loved tracks now (${lovedCount()})</button>
-        ${pl ? `<a class="btn small" href="${SP.playlistUrl(pl)}" target="_blank" rel="noopener">Open the playlist</a>` : ''}
+        <button class="btn small" id="sp-whole">Add my whole collection now</button>
+      </div>
+      <div class="row-btns">
+        ${pl ? `<a class="btn small" href="${SP.playlistUrl(pl)}" target="_blank" rel="noopener">Open ${esc(SP.LOVED_NAME)}</a>` : ''}
+        ${((s.spotifyPlaylists || {}).all || [])[0] ? `<a class="btn small" href="${SP.playlistUrl(s.spotifyPlaylists.all[0].id)}" target="_blank" rel="noopener">Open ${esc(SP.ALL_NAME)}</a>` : ''}
         <button class="btn small" id="sp-off">Disconnect</button>
       </div>`;
   }
@@ -220,7 +225,11 @@ export function mount(root) {
     const el = $('#sp-state', root);
     if (!el) return;
     const n = SP.lovedPending();
-    el.textContent = SP.status.error || (n ? `${n} track${n === 1 ? '' : 's'} waiting to be added. Keep the app open.` : 'Up to date.');
+    const r = SP.recsPending();
+    const parts = [];
+    if (r) parts.push(`${r} record${r === 1 ? '' : 's'}`);
+    if (n - r > 0) parts.push(`${n - r} loved track${n - r === 1 ? '' : 's'}`);
+    el.textContent = SP.status.error || (n ? `Waiting to be added: ${parts.join(' and ')}. Keep the app open.` : 'Up to date.');
   }
 
   function wireSpotify() {
@@ -243,6 +252,24 @@ export function mount(root) {
       };
       return;
     }
+    get('#sp-all').onchange = (e) => saveSettings({ spotifyAll: e.target.checked });
+    get('#sp-whole').onclick = async () => {
+      const recs = [...state.records.values()].filter((r) => !r.spAllDone && r.status !== 'sold' && ((r.tracklist && r.tracklist.length) || (r.source === 'discogs' && r.releaseId)));
+      if (!recs.length) { toast('Every record is already done'); return; }
+      const tracks = recs.reduce((t, r) => t + ((r.tracklist && r.tracklist.length) || 10), 0);
+      const mins = Math.max(1, Math.round((tracks * 0.4) / 60));
+      const when = mins >= 90 ? `about ${Math.round(mins / 60)} hours` : `about ${mins} minute${mins === 1 ? '' : 's'}`;
+      const ok = await confirmSheet({
+        title: 'Add your whole collection?',
+        text: `${recs.length.toLocaleString('en-GB')} records, about ${tracks.toLocaleString('en-GB')} tracks, into "${SP.ALL_NAME}". It takes ${when}. Keep Crate open and your screen on. It carries on where it stopped if you close it. Tracks Spotify does not have are skipped.`,
+        yes: 'Start',
+        no: 'Not now',
+      });
+      if (!ok) return;
+      const n = await SP.enqueueWholeCollection();
+      toast(`Adding ${n.toLocaleString('en-GB')} records`);
+      spotifyState();
+    };
     get('#sp-auto').onchange = (e) => { saveSettings({ spotifyAuto: e.target.checked }); if (e.target.checked) SP.kickLoved(); };
     get('#sp-now').onclick = async () => {
       const n = await SP.enqueueAllLoved();
