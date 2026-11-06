@@ -304,6 +304,7 @@ export function filterRecords(list, f) {
       if (f.genre === NONE) { if ((r.genres || []).length) return false; } else if (!(r.genres || []).includes(f.genre)) return false;
     }
     if (f.style && !(r.styles || []).includes(f.style)) return false;
+    if (f.loved && !(r.loved || []).length) return false;
     if (f.format && !(r.formatTags || []).includes(f.format)) return false;
     if (label && !norm(r.label).includes(label)) return false;
     if (artist && !norm(r.artist).includes(artist)) return false;

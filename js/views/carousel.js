@@ -37,7 +37,7 @@ export function mount(root) {
       </div>
       <div class="flow" id="flow" tabindex="0" aria-label="Your records. Swipe sideways to browse."></div>
       <div class="cap" id="cap" role="button" tabindex="0" aria-live="polite" aria-label="Open this record">
-        <div class="cap-artist"></div><div class="cap-title"></div><div class="cap-meta"></div>
+        <div class="cap-artist"></div><div class="cap-title"></div><div class="cap-meta"></div><div class="cap-love" id="cap-love" hidden></div>
       </div>
       <p class="cap-hint" id="hint">Pull the cover up to open it</p>
     </div>`;
@@ -196,6 +196,10 @@ export function mount(root) {
       ? `${(cur + 1).toLocaleString('en-GB')} of ${recs.length.toLocaleString('en-GB')}`
       : `${(cur + 1).toLocaleString('en-GB')} of ${recs.length.toLocaleString('en-GB')} (filtered)`;
     stage.style.setProperty('--ah', hue(r));
+    const n = (r.loved || []).length;
+    const love = root.querySelector('#cap-love');
+    love.hidden = !n;
+    love.innerHTML = n ? `${icon('heart', 14)}<span>${n} loved track${n === 1 ? '' : 's'}</span>` : '';
   }
 
   const onScroll = () => { if (!raf) raf = requestAnimationFrame(frame); };

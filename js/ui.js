@@ -54,7 +54,9 @@ export function cover(rec, { small = false, badge = '' } = {}) {
   }
   const b = badge ? `<i class="badge ${badge === 'Sold' ? 'sold' : 'sale'}">${esc(badge)}</i>` : '';
   const dim = rec.status === 'sold' ? ' dim' : '';
-  return `<div class="cover${dim}" style="--h:${hue(rec)}">${ph}${img}${b}</div>`;
+  const hearts = (rec.loved || []).length;
+  const love = hearts ? `<i class="hbadge${small ? ' sm' : ''}" title="${hearts} loved track${hearts === 1 ? '' : 's'}">${icon('heart', small ? 10 : 15)}</i>` : '';
+  return `<div class="cover${dim}" style="--h:${hue(rec)}">${ph}${img}${b}${love}</div>`;
 }
 
 // If a picture fails to load, try the smaller one, then give up and show the tile.

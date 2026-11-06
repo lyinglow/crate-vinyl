@@ -6,11 +6,11 @@ import { exportBackup } from '../exporter.js';
 import { lovedCount } from './loved.js';
 
 // Kept while the app is open, so coming back from a record keeps your place.
-const v = { q: '', status: 'all', genre: '', style: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added', count: 120, scroll: 0 };
+const v = { q: '', status: 'all', loved: false, genre: '', style: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added', count: 120, scroll: 0 };
 const STEP = 120;
 
 export const filterState = v;
-export const filtersOn = () => !!(v.genre || v.style || v.format || v.label || v.artist || v.from || v.to);
+export const filtersOn = () => !!(v.loved || v.genre || v.style || v.format || v.label || v.artist || v.from || v.to);
 
 export function mount(root) {
   const s = state.settings;
@@ -120,7 +120,7 @@ export function mount(root) {
   }
 
   function clearFilters() {
-    Object.assign(v, { genre: '', style: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added', count: STEP });
+    Object.assign(v, { loved: false, genre: '', style: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added', count: STEP });
   }
 
   // ---- events ----
@@ -162,6 +162,7 @@ function filterSheet(onApply) {
     title: 'Filter and sort',
     body: `<form class="form" id="ff">
       <label class="field"><span>Sort by</span><select name="sort">${[['added', 'Recently added'], ['artist', 'Artist A to Z'], ['title', 'Title A to Z'], ['year', 'Year, oldest first'], ['value', 'Value, highest first']].map(([k, l]) => `<option value="${k}"${v.sort === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label class="check"><input type="checkbox" name="loved"${v.loved ? ' checked' : ''}> Only records with a loved track</label>
       <label class="field"><span>Artist</span><input name="artist" value="${esc(v.artist)}" autocomplete="off"></label>
       <label class="field"><span>Label</span><input name="label" value="${esc(v.label)}" autocomplete="off"></label>
       <div class="two">
@@ -188,12 +189,13 @@ function filterSheet(onApply) {
     e.preventDefault();
     const fd = new FormData(form);
     for (const k of ['sort', 'artist', 'label', 'genre', 'style', 'format', 'from', 'to']) v[k] = String(fd.get(k) || '').trim();
+    v.loved = fd.get('loved') === 'on';
     v.sort = v.sort || 'added';
     s.close();
     onApply();
   };
   s.el.querySelector('#clear').onclick = () => {
-    Object.assign(v, { genre: '', style: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added' });
+    Object.assign(v, { loved: false, genre: '', style: '', format: '', label: '', artist: '', from: '', to: '', sort: 'added' });
     s.close();
     onApply();
   };

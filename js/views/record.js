@@ -58,10 +58,12 @@ export function mount(root, args) {
     $('#r-head', root).innerHTML = `
       <h1 class="rtitle">${esc(rec.title)}</h1>
       <p class="rartist">${esc(rec.artist || 'Unknown artist')}</p>
+      <p class="cap-love left" id="r-love" hidden></p>
       ${bits ? `<p class="meta">${esc(bits)}</p>` : ''}
       ${more ? `<p class="meta">${esc(more)}</p>` : ''}
       ${rec.source === 'manual' ? '<p class="meta">Added by hand. Not matched to Discogs.</p>' : ''}
       ${(rec.genres || []).length || (rec.styles || []).length ? `<div class="chips tags" id="r-tags">${(rec.genres || []).map((g) => `<button class="chip" data-genre="${esc(g)}">${esc(g)}</button>`).join('')}${(rec.styles || []).map((x) => `<button class="chip soft" data-style="${esc(x)}">${esc(x)}</button>`).join('')}</div>` : ''}`;
+    drawLove();
     const tags = $('#r-tags', root);
     if (tags) {
       tags.onclick = (e) => {
@@ -73,6 +75,14 @@ export function mount(root, args) {
         location.hash = '#/library';
       };
     }
+  }
+
+  function drawLove() {
+    const el = $('#r-love', root);
+    if (!el) return;
+    const n = (rec.loved || []).length;
+    el.hidden = !n;
+    el.innerHTML = n ? `${icon('heart', 15)}<span>${n} loved track${n === 1 ? '' : 's'}</span>` : '';
   }
 
   // ------------------------------------------------------ status
@@ -209,6 +219,7 @@ export function mount(root, args) {
         const on = set.has(key);
         h.classList.toggle('on', on);
         h.setAttribute('aria-pressed', String(on));
+        drawLove();
         await save();
       };
     } else if (rec.source === 'discogs' && !rec.detail) {
