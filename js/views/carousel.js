@@ -492,7 +492,7 @@ export function mount(root) {
   // Leave the cover flow alone for a while and the sleeve in the middle gives itself a spin.
   // Any touch, key or scroll stops it. Settings sets how long it waits, or turns it off.
 
-  const waitSeconds = () => { const n = Number(state.settings.autoSpin); return Number.isFinite(n) ? n : 30; };
+  const waitSeconds = () => { const n = Number(state.settings.autoSpin); return Number.isFinite(n) ? n : 2; };
   let idleTimer = null;
   let spinning = null;
 
