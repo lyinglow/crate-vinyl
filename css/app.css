@@ -485,7 +485,7 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .fc {
   position: absolute; left: 50%; top: 55%; width: var(--C, 260px); height: var(--C, 260px);
   margin-left: calc(var(--C, 260px) / -2); margin-top: calc(var(--C, 260px) / -2);
-  will-change: transform, opacity; touch-action: pan-x; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  will-change: transform; touch-action: pan-x;
 }
 .fc .cover { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 8px; box-shadow: 0 22px 44px rgba(0, 0, 0, 0.28), 0 0 0 0.5px var(--line); transition: box-shadow 0.2s; }
 .fc .cover.ready { box-shadow: 0 34px 60px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--fg3); }

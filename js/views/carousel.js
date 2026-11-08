@@ -343,7 +343,8 @@ export function mount(root) {
     love.innerHTML = n ? `${icon('heart', 14)}<span>${n} loved track${n === 1 ? '' : 's'}</span>` : '';
   }
 
-  const onScroll = () => { if (!raf) raf = requestAnimationFrame(frame); };
+  let lastMove = 0; // when the row last moved, so a sleeve never turns over while you scroll
+  const onScroll = () => { lastMove = performance.now(); abortTurn(); if (!raf) raf = requestAnimationFrame(frame); };
   flow.addEventListener('scroll', onScroll, { passive: true });
 
   function scrollToIndex(i, smooth = true) {
@@ -363,21 +364,37 @@ export function mount(root) {
     img.src = url;
   }
 
+  // A turn in flight is dropped the moment you touch or scroll, so a half-turned sleeve is never
+  // left sliding over its neighbour.
+  let turnId = 0;
+  function abortTurn() {
+    turnId++;
+    for (const el of live.values()) {
+      const box = el.querySelector('.cover');
+      if (box) box.getAnimations().forEach((an) => an.cancel());
+    }
+    if (flipping) flipping = false;
+  }
+
   async function turnOver(fc, url) {
     const box = fc.querySelector('.cover');
-    if (!box) return;
+    if (!box) return false;
+    const id = ++turnId;
     let img = box.querySelector('img');
     const ease = 'perspective(900px) rotateY(';
-    if (reduce()) { if (img) img.src = url; return; }
+    if (reduce()) { if (img) img.src = url; return true; }
     const out = box.animate([{ transform: `${ease}0deg)` }, { transform: `${ease}-90deg)` }], { duration: 170, easing: 'ease-in', fill: 'forwards' });
     await out.finished.catch(() => {});
+    if (id !== turnId) { out.cancel(); return false; }
     if (!img) { img = new Image(); img.alt = ''; img.referrerPolicy = 'no-referrer'; box.appendChild(img); }
     img.removeAttribute('data-alt');
     img.src = url;
     await Promise.race([img.decode().catch(() => {}), sleep(450)]);
+    if (id !== turnId) { out.cancel(); return true; }
     const back = box.animate([{ transform: `${ease}90deg)` }, { transform: `${ease}0deg)` }], { duration: 210, easing: 'ease-out' });
     await back.finished.catch(() => {});
     out.cancel();
+    return true;
   }
 
   async function bounce(fc) {
@@ -411,8 +428,7 @@ export function mount(root) {
       }
       const next = ((picture.get(r.id) || 0) + 1) % slides.length;
       const url = await slideUrl(slides[next]);
-      await turnOver(fc, url);
-      picture.set(r.id, next);
+      if (await turnOver(fc, url)) picture.set(r.id, next);
     } finally {
       flipping = false;
     }
@@ -495,7 +511,7 @@ export function mount(root) {
   flow.addEventListener('pointercancel', (e) => letGo(e, true));
 
   // ---------------------------------------------------------------- the idle turn
-  // Leave the cover flow alone for a while and the sleeve in the middle turns over by itself, the same
+  // Leave the cover flow alone for a while and the sleeve in the middle turns over by itself, once, the same
   // as a tap: the next picture of that record (back, label, inner). Any touch, key or scroll restarts
   // the wait. Settings sets how long it waits, or turns it off.
 
@@ -510,15 +526,14 @@ export function mount(root) {
     idleTimer = setTimeout(spin, n * 1000);
   }
 
-  async function spin() {
+  async function spin(force) {
     if (g && performance.now() - g.t0 > 10000) g = null; // a touch that never reported its end
-    if (!live.get(cur) || document.hidden || g || flipping || stage.classList.contains('pulling') || document.querySelector('.sheet-wrap.in')) { armIdle(); return; }
-    await turnMiddle(true);
-    armIdle();
+    if (!live.get(cur) || document.hidden || g || flipping || (!force && performance.now() - lastMove < 1500) || stage.classList.contains('pulling') || document.querySelector('.sheet-wrap.in')) { armIdle(); return; }
+    await turnMiddle(true); // once. It turns again only after you touch the screen and leave it alone again
   }
 
-  const touched = () => { stopSpin(); armIdle(); };
-  if (spinSoon) { spinSoon = false; setTimeout(spin, 700); }
+  const touched = () => { abortTurn(); armIdle(); };
+  if (spinSoon) { spinSoon = false; setTimeout(() => spin(true), 700); }
   const touchEvents = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
   touchEvents.forEach((n) => document.addEventListener(n, touched, { capture: true, passive: true }));
   const onSeen = () => { stopSpin(); armIdle(); };
