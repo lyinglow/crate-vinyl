@@ -161,12 +161,20 @@ export function youtubeId(uri) {
   }
 }
 
+// Two uploads of one song differ in small ways: spacing ("De Sardi" and "DeSardi"), punctuation,
+// capitals, tags like (Official Video). Reduce a title to letters and numbers so they compare equal.
+// Mix names such as (Dub) or (Remix) are kept, since those are different recordings.
+const NOISE = /[\(\[][^\)\]]*\b(official|video|audio|lyrics?|hd|hq|4k|full|music|visuali[sz]er|remaster(ed)?|upload|stream)\b[^\)\]]*[\)\]]/gi;
+export function sameSong(title) {
+  return String(title || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(NOISE, '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+}
+
 // Discogs sometimes lists one song twice, as two uploads. Keep the first of each.
 export function uniqueVideos(list) {
   const ids = new Set();
   const titles = new Set();
   return (list || []).filter((v) => {
-    const t = String(v.title || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const t = sameSong(v.title);
     if (ids.has(v.id) || (t && titles.has(t))) return false;
     ids.add(v.id);
     if (t) titles.add(t);
