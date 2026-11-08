@@ -579,7 +579,7 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 /* ---------- background styles ---------- */
 .stage.bg-off .ambient-wrap, .stage.bg-off .grain { display: none; }
 /* Soft: a pale blend with a little grain. The picture is stretched smoothly, not in blocks. */
-.stage.bg-soft .ambient { image-rendering: auto; opacity: 0.6; }
-.stage.bg-soft .grain { opacity: 0.2; }
-@media (prefers-color-scheme: dark) { .stage.bg-soft .ambient { opacity: 0.42; } .stage.bg-soft .grain { opacity: 0.16; } }
+.stage.bg-soft .ambient { image-rendering: auto; opacity: 0.95; }
+.stage.bg-soft .grain { opacity: 0.14; }
+@media (prefers-color-scheme: dark) { .stage.bg-soft .ambient { opacity: 0.75; } .stage.bg-soft .grain { opacity: 0.14; } }
 

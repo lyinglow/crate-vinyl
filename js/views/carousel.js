@@ -141,12 +141,12 @@ export function mount(root) {
     const H = amb.height;
     actx.filter = 'none';
     actx.globalAlpha = 1;
-    actx.fillStyle = `hsl(${hue(recs[mid])} 38% 58%)`;
+    actx.fillStyle = `hsl(${hue(recs[mid])} ${bg === 'pixel' ? 38 : 70}% ${bg === 'pixel' ? 58 : 56}%)`;
     actx.fillRect(0, 0, W, H);
     // A small canvas that the screen shows as big square blocks (that is the pixelation). Each sleeve
     // is drawn as a large shape at its own angle, position and size, worked out from its id so a record
     // always looks the same.
-    if (CAN_FILTER) actx.filter = bg === 'pixel' ? 'saturate(1.5)' : 'blur(1.2px) saturate(1.9)';
+    if (CAN_FILTER) actx.filter = bg === 'pixel' ? 'saturate(1.5)' : 'blur(1.2px) saturate(3) contrast(1.4)';
     const near = [];
     for (let i = mid - 3; i <= mid + 3; i++) {
       if (i < 0 || i >= recs.length) continue;
