@@ -1,4 +1,5 @@
 // Settings and the welcome screen: connect Discogs, import, defaults, backup.
+import { spinNow } from './carousel.js';
 import { state, saveSettings, wipeAll, subscribe } from '../store.js';
 import * as M from '../model.js';
 import { D } from '../discogs.js';
@@ -154,7 +155,9 @@ export function mount(root) {
         <h3 class="sec">Spin the cover flow</h3>
         <div class="card">
           <div class="chips" id="spin-chips">${[[0, 'Off'], [15, '15 seconds'], [30, '30 seconds'], [60, '1 minute'], [300, '5 minutes']].map(([k, l]) => `<button type="button" class="chip${Number(s.autoSpin ?? 30) === k ? ' on' : ''}" data-spin="${k}">${l}</button>`).join('')}</div>
+          <div class="row-btns"><button type="button" class="btn small" id="spin-now">Spin now</button></div>
           <p class="hint-text">Leave the Library alone for this long and it spins through your records and lands on one. Touch it to stop.</p>
+          ${window.matchMedia('(prefers-reduced-motion: reduce)').matches ? '<p class="hint-text">Your phone has Reduce Motion on, so Crate will not spin by itself. Turn it off in iPhone Settings, Accessibility, Motion. Spin now still works.</p>' : ''}
         </div>
 
         <h3 class="sec">Spotify</h3>
@@ -217,6 +220,7 @@ export function mount(root) {
       saveSettings({ autoSpin: Number(b.dataset.spin) });
       toast(Number(b.dataset.spin) ? 'Saved.' : 'Spin turned off.');
     });
+    $('#spin-now', root).onclick = () => { spinNow(); location.hash = '#/library'; };
     $('#t-coll', root).onchange = (e) => { saveSettings({ addToCollection: e.target.checked }); if (e.target.checked) kick(); };
     $('#t-price', root).onchange = (e) => { saveSettings({ fetchPrices: e.target.checked }); if (e.target.checked) kick(); };
     $('#reprice', root).onclick = async () => {

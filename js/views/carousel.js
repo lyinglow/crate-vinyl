@@ -41,6 +41,8 @@ const PULL_OPEN = 90; // pixels you must pull up to open a record
 const reduce = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+let spinSoon = false; // set by Settings, so "Spin now" shows it working
+export function spinNow() { spinSoon = true; }
 let lastId = null; // the record that was in the middle when you last left
 const picture = new Map(); // record id to the picture number showing in the flow
 
@@ -77,7 +79,7 @@ export function mount(root) {
     root.querySelector('#st-dot').hidden = !filtersOn() || (genreOn() && !F.q && !F.label && !F.artist && !F.format && !F.from && !F.to && F.status === 'all');
   };
   paintPill();
-  pill.onclick = () => openGenreSheet(() => { build(lastId); paintPill(); });
+  pill.onclick = () => openGenreSheet(() => { build(lastId); paintPill(); armIdle(); });
 
   // ---------------------------------------------------------------- the colour behind
   // A tiny canvas, stretched to fill the screen and blurred by CSS. The sleeves near the middle are
@@ -504,12 +506,13 @@ export function mount(root) {
   function armIdle() {
     clearTimeout(idleTimer);
     const n = waitSeconds();
-    if (!n || n < 0 || reduce() || recs.length < 8) return;
+    if (!n || n < 0 || reduce()) return;
     idleTimer = setTimeout(spin, n * 1000);
   }
 
-  function spin() {
-    if (document.hidden || g || flipping || stage.classList.contains('pulling') || document.querySelector('.sheet')) { armIdle(); return; }
+  function spin(force) {
+    if (g && performance.now() - g.t0 > 10000) g = null; // a touch that never reported its end
+    if (document.hidden || g || flipping || stage.classList.contains('pulling') || document.querySelector('.sheet-wrap.in') || recs.length < 8) { armIdle(); return; }
     const far = 20 + Math.floor(Math.random() * 40);
     let to = cur + (Math.random() < 0.5 ? -far : far);
     if (to < 0 || to > recs.length - 1) to = cur + (to < 0 ? far : -far);
@@ -536,6 +539,7 @@ export function mount(root) {
   }
 
   const touched = () => { stopSpin(); armIdle(); };
+  if (spinSoon) { spinSoon = false; setTimeout(() => spin(true), 900); }
   const touchEvents = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
   touchEvents.forEach((n) => document.addEventListener(n, touched, { capture: true, passive: true }));
   const onSeen = () => { stopSpin(); armIdle(); };
@@ -559,7 +563,7 @@ export function mount(root) {
   const off = subscribe((k) => {
     if (k !== 'records') return;
     clearTimeout(redraw);
-    redraw = setTimeout(() => { build(lastId); paintPill(); }, 250);
+    redraw = setTimeout(() => { build(lastId); paintPill(); armIdle(); }, 250);
   });
 
   armIdle();
