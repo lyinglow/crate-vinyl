@@ -210,6 +210,9 @@ export function mount(root) {
       ambWrap.style.height = `${ch}px`;
       ambWrap.style.margin = `${-ch / 2}px 0 0 ${-cw / 2}px`;
       ambWrap.style.setProperty('--amb-scale', String(BLOCK));
+      // how far the colour wanders, in canvas pixels: about a tenth of the screen each way
+      ambWrap.style.setProperty('--mx', `${((stage.clientWidth || 390) * 0.1) / BLOCK}px`);
+      ambWrap.style.setProperty('--my', `${((stage.clientHeight || 700) * 0.1) / BLOCK}px`);
     }
     flow.style.setProperty('--C', `${C}px`);
     flow.style.setProperty('--step', `${step}px`);
@@ -276,8 +279,10 @@ export function mount(root) {
     const x = sign * C * 0.3 * e;
     const z = -(e * 30 + far * 45);
     el.style.transform = `perspective(1100px) translate3d(${x.toFixed(1)}px,0,${z.toFixed(1)}px) rotateY(${rot.toFixed(1)}deg) scale(${scale.toFixed(4)})`;
-    el.style.opacity = String(Math.max(0.35, 1 - 0.28 * e - 0.1 * far).toFixed(3));
-    el.style.zIndex = String(200 - Math.round(a * 20));
+    // Solid while they can overlap, so one never shows through another. Only the far edge fades.
+    el.style.opacity = a <= 2 ? '1' : String(Math.max(0.35, 1 - 0.3 * (a - 2)).toFixed(3));
+    // Closer to the middle sits on top. Fine steps, and a fixed winner on a tie, so the order never flickers.
+    el.style.zIndex = String(10000 - Math.round(a * 400) * 2 - (d > 0 ? 1 : 0));
   }
 
   function mountItem(i) {

@@ -555,7 +555,7 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 /* ---------- colour from the sleeves ---------- */
 .ambient-wrap { position: absolute; left: 50%; top: 50%; z-index: 0; pointer-events: none; transform: scale(var(--amb-scale, 14)); will-change: transform; }
 /* A small picture scaled up with hard edges, so every pixel becomes a square block. */
-.ambient { display: block; opacity: 0.74; image-rendering: crisp-edges; image-rendering: pixelated; animation: drift 40s ease-in-out infinite alternate; }
+.ambient { display: block; opacity: 0.74; image-rendering: crisp-edges; image-rendering: pixelated; animation: drift 30s ease-in-out infinite; }
 .grain { position: absolute; left: -12%; top: -12%; width: 124%; height: 124%; z-index: 0; pointer-events: none; opacity: 0.5; background-repeat: repeat; image-rendering: pixelated; animation: grain 1.1s steps(1, end) infinite; }
 @keyframes grain {
   0% { transform: translate(0, 0); }
@@ -567,9 +567,12 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
   85% { transform: translate(4%, -3%); }
 }
 @keyframes drift {
-  from { transform: translate(-1.5px, 0.8px); }
-  to { transform: translate(1.5px, -1px); }
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  25% { transform: translate(var(--mx, 0px), calc(var(--my, 0px) * -0.6)) rotate(3deg) scale(1.06); }
+  50% { transform: translate(calc(var(--mx, 0px) * 0.4), var(--my, 0px)) rotate(-2deg) scale(1.1); }
+  75% { transform: translate(calc(var(--mx, 0px) * -1), calc(var(--my, 0px) * 0.4)) rotate(-4deg) scale(1.04); }
 }
+
 @media (prefers-color-scheme: dark) { .ambient { opacity: 0.5; } .grain { opacity: 0.38; } }
 @media (prefers-reduced-motion: reduce) { .ambient, .grain { animation: none; } }
 .stage::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 22%; z-index: 1; pointer-events: none; background: linear-gradient(to top, transparent, var(--glass)); }
