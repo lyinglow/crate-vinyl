@@ -192,6 +192,24 @@ function renameSheet(m) {
 }
 
 // From a record page: choose which mix a track goes into.
+// Opens the search pages of mix sites for one track. None of them lets an app search tracklists,
+// so Crate hands you to their own search and you read the results there.
+export function openFindInMixes(rec, track) {
+  const who = /^various/i.test(rec.artist || '') ? '' : (rec.artist || '');
+  const q = encodeURIComponent(`${who} ${track.title}`.trim());
+  const sites = [
+    ['1001Tracklists', 'DJ sets with full tracklists', `https://www.1001tracklists.com/search/result.php?main_search=${q}`],
+    ['Mixcloud', 'Mixes, search by name', `https://www.mixcloud.com/search/?mixcloud_query=${q}`],
+    ['SoundCloud', 'Mixes and sets', `https://soundcloud.com/search?q=${q}`],
+  ];
+  openSheet({
+    title: 'Find in mixes',
+    body: `<p class="muted" style="margin-bottom:6px"><b>${esc(track.title)}</b><br>${esc(rec.artist)}</p>
+      <div class="rows">${sites.map(([n, d, u]) => `<a class="vrow" href="${u}" target="_blank" rel="noopener"><div class="vtext"><b>${n}</b><span>${d}</span></div>${icon('external', 16)}</a>`).join('')}</div>
+      <p class="hint-text">These open the site's own search in a new tab. They match names, so a track listed inside a mix may not appear on every site.</p>`,
+  });
+}
+
 export function openAddToMix(rec, track) {
   const s = openSheet({ title: 'Add to a mix', body: '<div id="am"></div>' });
   function draw() {

@@ -9,7 +9,7 @@ import { mountFlipper } from '../flipper.js';
 import { filterState as F } from './library.js';
 import * as SP from '../spotify.js';
 import { gallerySlides } from '../gallery.js';
-import { openAddToMix } from './mixes.js';
+import { openAddToMix, openFindInMixes } from './mixes.js';
 
 const CODES = M.GRADES.map((g) => g.code);
 
@@ -214,8 +214,10 @@ export function mount(root, args) {
   function drawTracks() {
     const el = $('#r-tracks', root);
     if (rec.tracklist && rec.tracklist.length) {
-      el.innerHTML = `<h3 class="sec">Tracklist</h3><ol class="tracks">${rec.tracklist.map((t, i) => (t.heading ? `<li class="head">${esc(t.title)}</li>` : `<li><span class="pos">${esc(t.position)}</span><span class="tt">${esc(t.title)}</span><span class="dur">${esc(t.duration)}</span><span class="tbtns">${spotifyMark(t)}<button class="heart${M.isLoved(rec, t) ? ' on' : ''}" data-heart="${i}" aria-pressed="${M.isLoved(rec, t)}" aria-label="Love this track">${icon('heart', 18)}</button><button class="add-mix" data-add="${i}" aria-label="Add to a mix">${icon('plus', 18)}</button></span></li>`)).join('')}</ol><p class="hint-text">Tap the heart on a track you love. Tap + to add it to a mix.</p>`;
+      el.innerHTML = `<h3 class="sec">Tracklist</h3><ol class="tracks">${rec.tracklist.map((t, i) => (t.heading ? `<li class="head">${esc(t.title)}</li>` : `<li><span class="pos">${esc(t.position)}</span><span class="tt">${esc(t.title)}</span><span class="dur">${esc(t.duration)}</span><span class="tbtns">${spotifyMark(t)}<button class="heart${M.isLoved(rec, t) ? ' on' : ''}" data-heart="${i}" aria-pressed="${M.isLoved(rec, t)}" aria-label="Love this track">${icon('heart', 18)}</button><button class="find-mix" data-find="${i}" aria-label="Find this track in mixes">${icon('search', 16)}</button><button class="add-mix" data-add="${i}" aria-label="Add to a mix">${icon('plus', 18)}</button></span></li>`)).join('')}</ol><p class="hint-text">Tap the heart on a track you love. Tap + to add it to a mix. Tap the magnifier to find it in DJ mixes.</p>`;
       el.onclick = async (e) => {
+        const find = e.target.closest('[data-find]');
+        if (find) return openFindInMixes(rec, rec.tracklist[Number(find.dataset.find)]);
         const add = e.target.closest('[data-add]');
         if (add) return openAddToMix(rec, rec.tracklist[Number(add.dataset.add)]);
         const h = e.target.closest('[data-heart]');
