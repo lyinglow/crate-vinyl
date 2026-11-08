@@ -202,7 +202,7 @@ export function openFindInMixes(rec, track) {
   // screen. A web search for their pages works everywhere, and the mix links it finds open in the app.
   const google = (site) => `https://www.google.com/search?q=${encodeURIComponent(`site:${site} "${plain}" ${who}`.trim())}`;
   const sites = [
-    ['1001Tracklists', 'DJ sets whose tracklist includes it', google('1001tracklists.com')],
+    ['1001Tracklists', 'The track page, which lists every set that played it', google('1001tracklists.com/track')],
     ['Mixcloud', 'Mixes that mention it', google('mixcloud.com')],
     ['SoundCloud', 'Mixes and sets that mention it', google('soundcloud.com')],
     ['YouTube', 'Mixes with the track in the title or description', `https://www.youtube.com/results?search_query=${encodeURIComponent(`${who} ${plain} tracklist mix`.trim())}`],
@@ -210,7 +210,7 @@ export function openFindInMixes(rec, track) {
   openSheet({
     title: 'Find in mixes',
     body: `<p class="muted" style="margin-bottom:6px"><b>${esc(track.title)}</b><br>${esc(rec.artist)}</p>
-      <div class="rows">${sites.map(([n, d, u]) => `<a class="vrow" href="${u}" target="_blank" rel="noopener"><div class="vtext"><b>${n}</b><span>${d}</span></div>${icon('external', 16)}</a>`).join('')}</div>
+      <div class="rows">${sites.map(([n, d, u]) => `<a class="findrow" href="${u}" target="_blank" rel="noopener"><span class="ft"><b>${n}</b><span>${d}</span></span>${icon('external', 18)}</a>`).join('')}</div>
       <p class="hint-text">Each opens a web search in a new tab. A site only shows a hit if it spells the track the same way, so try a shorter title if you get nothing.</p>`,
   });
 }

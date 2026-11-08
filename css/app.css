@@ -603,3 +603,11 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .srow .sv b { font-size: 14px; font-weight: 600; }
 .srow .sv em { font-style: normal; font-size: 12px; color: var(--fg2); }
 #st-lab .srow, #st-val .srow { grid-template-columns: 112px 1fr auto; }
+
+/* Find in mixes */
+.findrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 4px; border-bottom: 0.5px solid var(--line); color: var(--fg); text-decoration: none; }
+.findrow:last-child { border-bottom: 0; }
+.findrow .ft { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.findrow .ft b { font-size: 18px; font-weight: 650; }
+.findrow .ft span { font-size: 14px; color: var(--fg2); }
+.findrow svg { flex: none; color: var(--fg3); }
