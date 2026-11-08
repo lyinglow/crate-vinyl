@@ -489,7 +489,7 @@ export function mount(root) {
   flow.addEventListener('pointercancel', (e) => letGo(e, true));
 
   // ---------------------------------------------------------------- the idle spin
-  // Leave the cover flow alone for a while and it spins through the crate and lands on a record.
+  // Leave the cover flow alone for a while and the sleeve in the middle gives itself a spin.
   // Any touch, key or scroll stops it. Settings sets how long it waits, or turns it off.
 
   const waitSeconds = () => { const n = Number(state.settings.autoSpin); return Number.isFinite(n) ? n : 30; };
@@ -498,9 +498,9 @@ export function mount(root) {
 
   function stopSpin() {
     if (!spinning) return;
-    spinning.stop = true;
+    spinning.cancel();
     spinning = null;
-    flow.classList.remove('spinning');
+    flipping = false;
   }
 
   function armIdle() {
@@ -510,36 +510,25 @@ export function mount(root) {
     idleTimer = setTimeout(spin, n * 1000);
   }
 
-  function spin(force) {
+  function spin() {
     if (g && performance.now() - g.t0 > 10000) g = null; // a touch that never reported its end
-    if (document.hidden || g || flipping || stage.classList.contains('pulling') || document.querySelector('.sheet-wrap.in') || recs.length < 8) { armIdle(); return; }
-    const far = 20 + Math.floor(Math.random() * 40);
-    let to = cur + (Math.random() < 0.5 ? -far : far);
-    if (to < 0 || to > recs.length - 1) to = cur + (to < 0 ? far : -far);
-    to = Math.max(0, Math.min(recs.length - 1, to));
-    if (to === cur) { armIdle(); return; }
-    const from = flow.scrollLeft;
-    const end = to * step;
-    const dur = 2600 + Math.abs(to - cur) * 20;
-    const job = { stop: false };
-    spinning = job;
-    flow.classList.add('spinning');
-    const t0 = performance.now();
-    const tick = (now) => {
-      if (job.stop) return;
-      const t = Math.min(1, (now - t0) / dur);
-      flow.scrollLeft = from + (end - from) * (1 - Math.pow(1 - t, 4));
-      if (t < 1) { requestAnimationFrame(tick); return; }
-      flow.scrollLeft = end;
-      spinning = null;
-      flow.classList.remove('spinning');
-      armIdle();
-    };
-    requestAnimationFrame(tick);
+    const fc = live.get(cur);
+    const box = fc && fc.querySelector('.cover');
+    if (!box || document.hidden || g || flipping || stage.classList.contains('pulling') || document.querySelector('.sheet-wrap.in')) { armIdle(); return; }
+    flipping = true;
+    const p = 'perspective(900px) ';
+    const anim = box.animate([
+      { transform: `${p}rotateY(0deg) scale(1)` },
+      { transform: `${p}rotateY(540deg) scale(1.05)`, offset: 0.55 },
+      { transform: `${p}rotateY(720deg) scale(1)` },
+    ], { duration: 2200, easing: 'ease-in-out' });
+    spinning = anim;
+    const done = () => { if (spinning === anim) { spinning = null; flipping = false; armIdle(); } };
+    anim.finished.then(done, () => {});
   }
 
   const touched = () => { stopSpin(); armIdle(); };
-  if (spinSoon) { spinSoon = false; setTimeout(() => spin(true), 900); }
+  if (spinSoon) { spinSoon = false; setTimeout(spin, 700); }
   const touchEvents = ['pointerdown', 'keydown', 'wheel', 'touchstart'];
   touchEvents.forEach((n) => document.addEventListener(n, touched, { capture: true, passive: true }));
   const onSeen = () => { stopSpin(); armIdle(); };
