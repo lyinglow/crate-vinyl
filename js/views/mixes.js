@@ -198,7 +198,7 @@ export function openFindInMixes(rec, track) {
   const who = /^various/i.test(rec.artist || '') ? '' : (rec.artist || '');
   const q = encodeURIComponent(`${who} ${track.title}`.trim());
   const sites = [
-    ['1001Tracklists', 'DJ sets with full tracklists', `https://www.1001tracklists.com/search/result.php?main_search=${q}`],
+    ['1001Tracklists', 'Tracklists that list it, found with Google', `https://www.google.com/search?q=${encodeURIComponent(`site:1001tracklists.com ${who ? `"${who}" ` : ''}"${track.title}"`)}`],
     ['Mixcloud', 'Mixes, search by name', `https://www.mixcloud.com/search/?mixcloud_query=${q}`],
     ['SoundCloud', 'Mixes and sets', `https://soundcloud.com/search?q=${q}`],
   ];
@@ -206,7 +206,7 @@ export function openFindInMixes(rec, track) {
     title: 'Find in mixes',
     body: `<p class="muted" style="margin-bottom:6px"><b>${esc(track.title)}</b><br>${esc(rec.artist)}</p>
       <div class="rows">${sites.map(([n, d, u]) => `<a class="vrow" href="${u}" target="_blank" rel="noopener"><div class="vtext"><b>${n}</b><span>${d}</span></div>${icon('external', 16)}</a>`).join('')}</div>
-      <p class="hint-text">These open the site's own search in a new tab. They match names, so a track listed inside a mix may not appear on every site.</p>`,
+      <p class="hint-text">These open in a new tab. Mixcloud and SoundCloud match mix names, so a track listed inside a mix may not appear there. The 1001Tracklists link searches inside their tracklist pages.</p>`,
   });
 }
 
