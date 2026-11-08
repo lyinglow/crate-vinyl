@@ -152,12 +152,12 @@ export function mount(root) {
           <p class="hint-text">Colour taken from the sleeves near the middle. Soft is a pale blend. Pixels is chunky with film grain. Plain turns it off.</p>
         </div>
 
-        <h3 class="sec">Spin the sleeve</h3>
+        <h3 class="sec">Turn the sleeve</h3>
         <div class="card">
           <div class="chips" id="spin-chips">${[[0, 'Off'], [2, '2 seconds'], [15, '15 seconds'], [30, '30 seconds'], [60, '1 minute'], [300, '5 minutes']].map(([k, l]) => `<button type="button" class="chip${Number(s.autoSpin ?? 2) === k ? ' on' : ''}" data-spin="${k}">${l}</button>`).join('')}</div>
-          <div class="row-btns"><button type="button" class="btn small" id="spin-now">Spin now</button></div>
-          <p class="hint-text">Leave the Library alone for this long and the sleeve in the middle gives itself a spin. Touch it to stop.</p>
-          ${window.matchMedia('(prefers-reduced-motion: reduce)').matches ? '<p class="hint-text">Your phone has Reduce Motion on, so Crate will not spin by itself. Turn it off in iPhone Settings, Accessibility, Motion. Spin now still works.</p>' : ''}
+          <div class="row-btns"><button type="button" class="btn small" id="spin-now">Turn now</button></div>
+          <p class="hint-text">Leave the Library alone for this long and the sleeve in the middle turns over to show its other photos, such as the back and the label. Touch it to restart the wait.</p>
+          ${window.matchMedia('(prefers-reduced-motion: reduce)').matches ? '<p class="hint-text">Your phone has Reduce Motion on, so Crate will not spin by itself. Turn it off in iPhone Settings, Accessibility, Motion. Turn now still works.</p>' : ''}
         </div>
 
         <h3 class="sec">Spotify</h3>
@@ -218,7 +218,7 @@ export function mount(root) {
       if (!b) return;
       root.querySelectorAll('#spin-chips .chip').forEach((c) => c.classList.toggle('on', c === b));
       saveSettings({ autoSpin: Number(b.dataset.spin) });
-      toast(Number(b.dataset.spin) ? 'Saved.' : 'Spin turned off.');
+      toast(Number(b.dataset.spin) ? 'Saved.' : 'Turned off.');
     });
     $('#spin-now', root).onclick = () => { spinNow(); location.hash = '#/library'; };
     $('#t-coll', root).onchange = (e) => { saveSettings({ addToCollection: e.target.checked }); if (e.target.checked) kick(); };

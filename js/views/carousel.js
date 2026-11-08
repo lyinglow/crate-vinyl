@@ -387,7 +387,7 @@ export function mount(root) {
     hintTimer = setTimeout(() => hint.classList.remove('show'), 2400);
   }
 
-  async function turnMiddle() {
+  async function turnMiddle(auto) {
     if (flipping) return;
     const r = recs[cur];
     const fc = live.get(cur);
@@ -399,6 +399,7 @@ export function mount(root) {
       }
       const slides = gallerySlides(r);
       if (slides.length < 2) {
+        if (auto) return; // nothing to turn to, so stay still
         await bounce(fc);
         tellAboutPulling();
         return;
@@ -488,20 +489,14 @@ export function mount(root) {
   flow.addEventListener('pointerup', (e) => letGo(e, false));
   flow.addEventListener('pointercancel', (e) => letGo(e, true));
 
-  // ---------------------------------------------------------------- the idle spin
-  // Leave the cover flow alone for a while and the sleeve in the middle gives itself a spin.
-  // Any touch, key or scroll stops it. Settings sets how long it waits, or turns it off.
+  // ---------------------------------------------------------------- the idle turn
+  // Leave the cover flow alone for a while and the sleeve in the middle turns over by itself, the same
+  // as a tap: the next picture of that record (back, label, inner). Any touch, key or scroll restarts
+  // the wait. Settings sets how long it waits, or turns it off.
 
   const waitSeconds = () => { const n = Number(state.settings.autoSpin); return Number.isFinite(n) ? n : 2; };
   let idleTimer = null;
-  let spinning = null;
-
-  function stopSpin() {
-    if (!spinning) return;
-    spinning.cancel();
-    spinning = null;
-    flipping = false;
-  }
+  const stopSpin = () => {};
 
   function armIdle() {
     clearTimeout(idleTimer);
@@ -510,21 +505,11 @@ export function mount(root) {
     idleTimer = setTimeout(spin, n * 1000);
   }
 
-  function spin() {
+  async function spin() {
     if (g && performance.now() - g.t0 > 10000) g = null; // a touch that never reported its end
-    const fc = live.get(cur);
-    const box = fc && fc.querySelector('.cover');
-    if (!box || document.hidden || g || flipping || stage.classList.contains('pulling') || document.querySelector('.sheet-wrap.in')) { armIdle(); return; }
-    flipping = true;
-    const p = 'perspective(900px) ';
-    const anim = box.animate([
-      { transform: `${p}rotateY(0deg) scale(1)` },
-      { transform: `${p}rotateY(540deg) scale(1.05)`, offset: 0.55 },
-      { transform: `${p}rotateY(720deg) scale(1)` },
-    ], { duration: 2200, easing: 'ease-in-out' });
-    spinning = anim;
-    const done = () => { if (spinning === anim) { spinning = null; flipping = false; armIdle(); } };
-    anim.finished.then(done, () => {});
+    if (!live.get(cur) || document.hidden || g || flipping || stage.classList.contains('pulling') || document.querySelector('.sheet-wrap.in')) { armIdle(); return; }
+    await turnMiddle(true);
+    armIdle();
   }
 
   const touched = () => { stopSpin(); armIdle(); };
