@@ -151,6 +151,12 @@ export function mount(root) {
           <p class="hint-text">Colour taken from the sleeves near the middle. Soft is a pale blend. Pixels is chunky with film grain. Plain turns it off.</p>
         </div>
 
+        <h3 class="sec">Spin the cover flow</h3>
+        <div class="card">
+          <div class="chips" id="spin-chips">${[[0, 'Off'], [15, '15 seconds'], [30, '30 seconds'], [60, '1 minute'], [300, '5 minutes']].map(([k, l]) => `<button type="button" class="chip${Number(s.autoSpin ?? 30) === k ? ' on' : ''}" data-spin="${k}">${l}</button>`).join('')}</div>
+          <p class="hint-text">Leave the Library alone for this long and it spins through your records and lands on one. Touch it to stop.</p>
+        </div>
+
         <h3 class="sec">Spotify</h3>
         <div class="card" id="sp-card">${spotifyCard(s)}</div>
 
@@ -203,6 +209,13 @@ export function mount(root) {
       root.querySelectorAll('#bg-chips .chip').forEach((c) => c.classList.toggle('on', c === b));
       saveSettings({ bgStyle: b.dataset.bg });
       toast('Saved. See it on the Library tab.');
+    });
+    $('#spin-chips', root).addEventListener('click', (e) => {
+      const b = e.target.closest('[data-spin]');
+      if (!b) return;
+      root.querySelectorAll('#spin-chips .chip').forEach((c) => c.classList.toggle('on', c === b));
+      saveSettings({ autoSpin: Number(b.dataset.spin) });
+      toast(Number(b.dataset.spin) ? 'Saved.' : 'Spin turned off.');
     });
     $('#t-coll', root).onchange = (e) => { saveSettings({ addToCollection: e.target.checked }); if (e.target.checked) kick(); };
     $('#t-price', root).onchange = (e) => { saveSettings({ fetchPrices: e.target.checked }); if (e.target.checked) kick(); };

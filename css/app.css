@@ -582,3 +582,5 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .stage.bg-soft .ambient { image-rendering: auto; opacity: 0.6; }
 .stage.bg-soft .grain { opacity: 0.2; }
 @media (prefers-color-scheme: dark) { .stage.bg-soft .ambient { opacity: 0.42; } .stage.bg-soft .grain { opacity: 0.16; } }
+
+.flow.spinning { scroll-snap-type: none; }
