@@ -12,6 +12,7 @@ import * as value from './views/value.js';
 import * as settings from './views/settings.js';
 import * as mixes from './views/mixes.js';
 import * as loved from './views/loved.js';
+import * as stats from './views/stats.js';
 import * as spotify from './spotify.js';
 
 const views = {
@@ -24,6 +25,7 @@ const views = {
   settings,
   mixes,
   loved,
+  stats,
   // A one-tap link that saves your Spotify Client ID on this phone: #/spotifyid/<32 characters>
   spotifyid: {
     mount(root, args) {
@@ -38,7 +40,7 @@ const views = {
   },
   welcome: { mount: settings.mountWelcome },
 };
-const tabOf = { record: 'library', browse: 'library', mixes: 'library', loved: 'library', welcome: 'settings' };
+const tabOf = { record: 'library', browse: 'library', mixes: 'library', loved: 'library', stats: 'value', welcome: 'settings' };
 
 const view = document.getElementById('view');
 const tabs = document.getElementById('tabs');

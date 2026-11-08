@@ -14,6 +14,7 @@ export function mount(root) {
     <div class="page">
       <div class="largetitle"><h1>Value</h1><p class="sub" id="v-sub"></p></div>
       <section class="card hero" id="v-total"></section>
+      <a class="card flat linkcard" href="#/stats"><span><b>Collection stats</b><br><span class="muted">By decade, year, label and value</span></span>${icon('chevron', 18)}</a>
       <section id="v-discogs"></section>
       <h3 class="sec">Most valuable</h3>
       <div id="v-top"></div>
