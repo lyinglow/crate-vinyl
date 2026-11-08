@@ -195,18 +195,23 @@ function renameSheet(m) {
 // Opens the search pages of mix sites for one track. None of them lets an app search tracklists,
 // so Crate hands you to their own search and you read the results there.
 export function openFindInMixes(rec, track) {
-  const who = /^various/i.test(rec.artist || '') ? '' : (rec.artist || '');
-  const q = encodeURIComponent(`${who} ${track.title}`.trim());
+  const who = /^various/i.test(rec.artist || '') ? '' : (rec.artist || '').replace(/\s*\(\d+\)$/, '');
+  // "Dancing In The Dark (4Tune Dub)" is worded many ways, so search the plain title.
+  const plain = String(track.title || '').replace(/[\(\[].*?[\)\]]/g, ' ').replace(/\s+-\s+.*$/, '').replace(/["\u201c\u201d]/g, '').replace(/\s+/g, ' ').trim() || track.title;
+  // Mixcloud and SoundCloud's own search links are swallowed by their phone apps, which open at the home
+  // screen. A web search for their pages works everywhere, and the mix links it finds open in the app.
+  const google = (site) => `https://www.google.com/search?q=${encodeURIComponent(`site:${site} "${plain}" ${who}`.trim())}`;
   const sites = [
-    ['1001Tracklists', 'Tracklists that list it, found with Google', `https://www.google.com/search?q=${encodeURIComponent(`site:1001tracklists.com ${who ? `"${who}" ` : ''}"${track.title}"`)}`],
-    ['Mixcloud', 'Mixes, search by name', `https://www.mixcloud.com/search/?mixcloud_query=${q}`],
-    ['SoundCloud', 'Mixes and sets', `https://soundcloud.com/search?q=${q}`],
+    ['1001Tracklists', 'DJ sets whose tracklist includes it', google('1001tracklists.com')],
+    ['Mixcloud', 'Mixes that mention it', google('mixcloud.com')],
+    ['SoundCloud', 'Mixes and sets that mention it', google('soundcloud.com')],
+    ['YouTube', 'Mixes with the track in the title or description', `https://www.youtube.com/results?search_query=${encodeURIComponent(`${who} ${plain} tracklist mix`.trim())}`],
   ];
   openSheet({
     title: 'Find in mixes',
     body: `<p class="muted" style="margin-bottom:6px"><b>${esc(track.title)}</b><br>${esc(rec.artist)}</p>
       <div class="rows">${sites.map(([n, d, u]) => `<a class="vrow" href="${u}" target="_blank" rel="noopener"><div class="vtext"><b>${n}</b><span>${d}</span></div>${icon('external', 16)}</a>`).join('')}</div>
-      <p class="hint-text">These open in a new tab. Mixcloud and SoundCloud match mix names, so a track listed inside a mix may not appear there. The 1001Tracklists link searches inside their tracklist pages.</p>`,
+      <p class="hint-text">Each opens a web search in a new tab. A site only shows a hit if it spells the track the same way, so try a shorter title if you get nothing.</p>`,
   });
 }
 

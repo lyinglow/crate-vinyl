@@ -154,10 +154,16 @@ export function mount(root) {
       if (Math.abs(d) < 2.6) near.push([i, d]);
     }
     near.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])); // furthest first, so the middle sits on top
+    // Each shape is laid down with its share of the total so far (a running average). That makes the
+    // result the same whichever shape goes first, so when two records swap places in the middle nothing
+    // jumps. Stacking them with fixed strength made the colour pop halfway between two sleeves.
+    let shared = 0.2; // the plain fill underneath counts a little
     for (const [i, d] of near) {
       const r = recs[i];
       const h = hash(r.id);
-      const a = Math.max(0, Math.min(1, 1.25 - Math.abs(d) * 0.5));
+      const w = Math.pow(Math.max(0, 1 - Math.abs(d) / 2.4), 3);
+      shared += w;
+      const a = w / shared;
       const size = W * ((bg === 'pixel' ? 1.0 : 1.5) + ((h >>> 17) % 70) / 100) * (1 - Math.abs(d) * 0.08);
       const cx = W / 2 + d * W * 0.3 + (((h >>> 3) % 100) / 100 - 0.5) * W * 0.3;
       const cy = H * 0.46 + (((h >>> 9) % 100) / 100 - 0.5) * H * 0.34;

@@ -364,7 +364,10 @@ textarea { resize: vertical; min-height: 84px; }
   box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.18);
 }
 .in .sheet { transform: none; }
-.grab { width: 38px; height: 5px; border-radius: 3px; background: var(--bg3); margin: 4px auto 14px; }
+.grab { width: 38px; height: 5px; border-radius: 3px; background: var(--bg3); margin: 4px auto 18px; position: relative; }
+.grab::before { content: ""; position: absolute; inset: -14px -40px; }
+.grab, .sheet-title { touch-action: none; }
+.sheet-x { position: sticky; float: right; top: 0; z-index: 3; width: 30px; height: 30px; margin: 0 -4px -30px 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--bg2); color: var(--fg2); padding: 0; }
 .sheet-title { font-size: 21px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 12px; }
 @media (min-width: 700px) { .sheet { bottom: 24px; border-radius: 24px; } }
 

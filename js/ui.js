@@ -123,11 +123,16 @@ export function pickPhoto({ camera = false } = {}) {
 }
 
 // ---------- sheets ----------
+const openSheets = [];
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && openSheets.length) openSheets[openSheets.length - 1].close();
+});
+
 export function openSheet({ title = '', body = '', className = '', onClose } = {}) {
   const layer = document.getElementById('layer');
   const wrap = document.createElement('div');
   wrap.className = 'sheet-wrap';
-  wrap.innerHTML = `<div class="backdrop"></div><section class="sheet ${className}" role="dialog" aria-modal="true"><div class="grab"></div>${title ? `<h2 class="sheet-title">${esc(title)}</h2>` : ''}<div class="sheet-body">${body}</div></section>`;
+  wrap.innerHTML = `<div class="backdrop"></div><section class="sheet ${className}" role="dialog" aria-modal="true"><button type="button" class="sheet-x" aria-label="Close">${icon('close', 16)}</button><div class="grab"></div>${title ? `<h2 class="sheet-title">${esc(title)}</h2>` : ''}<div class="sheet-body">${body}</div></section>`;
   layer.appendChild(wrap);
   requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('in')));
   let closed = false;
@@ -138,12 +143,41 @@ export function openSheet({ title = '', body = '', className = '', onClose } = {
     close() {
       if (closed) return;
       closed = true;
+      const at = openSheets.indexOf(api);
+      if (at >= 0) openSheets.splice(at, 1);
       wrap.classList.remove('in');
       setTimeout(() => wrap.remove(), 260);
       if (onClose) onClose();
     },
   };
+  openSheets.push(api);
   wrap.querySelector('.backdrop').addEventListener('click', () => api.close());
+  wrap.querySelector('.sheet-x').addEventListener('click', () => api.close());
+  // Drag the top of the panel down to close it, the way iPhone panels work.
+  const sheet = api.sheet;
+  let drag = null;
+  const top = (e) => e.target.closest('.grab, .sheet-title') || (e.target === sheet && e.offsetY < 40);
+  sheet.addEventListener('pointerdown', (e) => {
+    if (!top(e) || e.target.closest('.sheet-x')) return;
+    drag = { id: e.pointerId, y0: e.clientY, dy: 0, t0: performance.now() };
+    sheet.setPointerCapture(e.pointerId);
+    sheet.style.transition = 'none';
+  });
+  sheet.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.dy = Math.max(0, e.clientY - drag.y0);
+    sheet.style.transform = `translateY(${drag.dy}px)`;
+  });
+  const letGo = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag;
+    drag = null;
+    sheet.style.transition = '';
+    const fast = d.dy > 30 && d.dy / Math.max(1, performance.now() - d.t0) > 0.5;
+    if (d.dy > 90 || fast) { sheet.style.transform = ''; api.close(); } else sheet.style.transform = '';
+  };
+  sheet.addEventListener('pointerup', letGo);
+  sheet.addEventListener('pointercancel', letGo);
   return api;
 }
 
