@@ -108,7 +108,7 @@ export function mount(root) {
       if (entry.state === 'loading') entry.listeners.add(repaint);
       return entry;
     }
-    entry = { key, small: null, tiny: null, state: key ? 'loading' : 'none', listeners: new Set([repaint]) };
+    entry = { key, small: null, tiny: null, blob: null, state: key ? 'loading' : 'none', listeners: new Set([repaint]) };
     picCache.delete(r.id);
     picCache.set(r.id, entry);
     if (picCache.size > 600) picCache.delete(picCache.keys().next().value);
@@ -133,6 +133,23 @@ export function mount(root) {
         tg.imageSmoothingQuality = 'high';
         tg.drawImage(c, 7, 7, 26, 26, 0, 0, 3, 3);
         entry.tiny = t;
+        // A soft round blob made from those nine colours, fading to nothing at its rim. Drawn instead of a
+        // flat square so no hard edge ever sweeps across the screen as you scroll.
+        const bl = document.createElement('canvas');
+        bl.width = 48;
+        bl.height = 48;
+        const bc = bl.getContext('2d');
+        bc.imageSmoothingEnabled = true;
+        bc.imageSmoothingQuality = 'high';
+        bc.drawImage(t, 0, 0, 48, 48);
+        bc.globalCompositeOperation = 'destination-in';
+        const rim = bc.createRadialGradient(24, 24, 0, 24, 24, 24);
+        rim.addColorStop(0, 'rgba(0,0,0,1)');
+        rim.addColorStop(0.6, 'rgba(0,0,0,1)');
+        rim.addColorStop(1, 'rgba(0,0,0,0)');
+        bc.fillStyle = rim;
+        bc.fillRect(0, 0, 48, 48);
+        entry.blob = bl;
         done('ready');
       };
       im.src = url;
@@ -153,12 +170,17 @@ export function mount(root) {
     const H = amb.height;
     actx.filter = 'none';
     actx.globalAlpha = 1;
-    actx.fillStyle = `hsl(${hue(recs[mid])} ${bg === 'pixel' ? 38 : 70}% ${bg === 'pixel' ? 58 : 56}%)`;
+    // The plain colour underneath fades from one record's colour to the next, so it never switches at the halfway point.
+    const base = (i) => `hsl(${hue(recs[Math.max(0, Math.min(recs.length - 1, i))])} ${bg === 'pixel' ? 38 : 70}% ${bg === 'pixel' ? 58 : 56}%)`;
+    const i0 = Math.floor(pos);
+    const frac = Math.max(0, Math.min(1, pos - i0));
+    actx.fillStyle = base(i0);
     actx.fillRect(0, 0, W, H);
+    if (frac > 0.001) { actx.globalAlpha = frac; actx.fillStyle = base(i0 + 1); actx.fillRect(0, 0, W, H); actx.globalAlpha = 1; }
     // A small canvas that the screen shows as big square blocks (that is the pixelation). Each sleeve
     // is drawn as a large shape at its own angle, position and size, worked out from its id so a record
     // always looks the same.
-    if (CAN_FILTER) actx.filter = bg === 'pixel' ? 'saturate(1.5)' : 'blur(1.2px) saturate(3) contrast(1.4)';
+    if (CAN_FILTER) actx.filter = bg === 'pixel' ? 'saturate(1.5)' : 'blur(1.2px) saturate(3.6) contrast(1.2)';
     const near = [];
     for (let i = mid - 3; i <= mid + 3; i++) {
       if (i < 0 || i >= recs.length) continue;
@@ -186,12 +208,13 @@ export function mount(root) {
       actx.globalAlpha = a;
       actx.translate(cx, cy);
       actx.rotate(tilt);
-      const src = bg === 'pixel' ? p.small : p.tiny;
+      const src = bg === 'pixel' ? p.small : p.blob;
       if (src) actx.drawImage(src, -size / 2, -size / 2, size, size);
       else { actx.fillStyle = `hsl(${hue(r)} 40% 55%)`; actx.fillRect(-size / 2, -size / 2, size, size); }
       actx.restore();
     }
     actx.filter = 'none';
+    if (bg === 'soft') { actx.globalAlpha = 0.05; actx.fillStyle = '#fff'; actx.fillRect(0, 0, W, H); } // lifts the darkest patches
     actx.globalAlpha = 1;
     amb.dataset.mid = recs[mid].id;
     amb.dataset.drawn = String(++drawn);
