@@ -611,3 +611,5 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .findrow .ft b { font-size: 18px; font-weight: 650; }
 .findrow .ft span { font-size: 14px; color: var(--fg2); }
 .findrow svg { flex: none; color: var(--fg3); }
+
+.stage.lite .grain, .stage.lite .ambient { animation: none; }

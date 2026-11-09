@@ -15,6 +15,7 @@ import { gallerySlides, slideUrl } from '../gallery.js';
 import { openGenreSheet, genreLabel, genreOn } from './genres.js';
 import { ensureDetail } from '../sync.js';
 
+const picCache = new Map(); // each sleeve's tiny colour copies, kept between visits so colours are ready before you scroll to them
 const LIVE = 6; // sleeves drawn on each side of the middle
 const BLOCKS = { pixel: 14, soft: 30 }; // how many screen pixels wide each pixel of the background is
 const hash = (s) => { let h = 2166136261; for (let k = 0; k < s.length; k++) { h ^= s.charCodeAt(k); h = Math.imul(h, 16777619); } return h >>> 0; };
@@ -94,18 +95,29 @@ export function mount(root) {
   grain.style.backgroundImage = `url(${grainTexture()})`;
   grain.style.backgroundSize = `${(128 / (window.devicePixelRatio || 1)).toFixed(2)}px`;
   const actx = amb.getContext('2d');
-  const pics = new Map();
   let lastPos = 0;
   let drawn = 0;
 
   // Each sleeve is shrunk once to a tiny copy. Turning a big photo around many times a second is slow.
+  // A sleeve whose picture has not arrived yet is left out of the blend, so its colour never pops in.
+  const repaint = () => paintAmbient(lastPos);
   function pic(r) {
-    if (pics.has(r.id)) return pics.get(r.id);
-    const entry = { small: null };
+    const key = r.cover || r.thumb || (r.photoSleeve ? `photo:${r.photoSleeve}` : '');
+    let entry = picCache.get(r.id);
+    if (entry && entry.key === key) {
+      if (entry.state === 'loading') entry.listeners.add(repaint);
+      return entry;
+    }
+    entry = { key, small: null, tiny: null, state: key ? 'loading' : 'none', listeners: new Set([repaint]) };
+    picCache.delete(r.id);
+    picCache.set(r.id, entry);
+    if (picCache.size > 600) picCache.delete(picCache.keys().next().value);
+    const done = (state) => { entry.state = state; entry.listeners.forEach((f) => f()); entry.listeners.clear(); };
     const make = (url) => {
       const im = new Image();
       im.decoding = 'async';
       im.referrerPolicy = 'no-referrer';
+      im.onerror = () => done('failed');
       im.onload = () => {
         const c = document.createElement('canvas');
         c.width = 40;
@@ -121,21 +133,21 @@ export function mount(root) {
         tg.imageSmoothingQuality = 'high';
         tg.drawImage(c, 7, 7, 26, 26, 0, 0, 3, 3);
         entry.tiny = t;
-        paintAmbient(lastPos);
+        done('ready');
       };
       im.src = url;
     };
-    const url = r.cover || r.thumb;
-    if (url) make(url);
-    else if (r.photoSleeve) photoUrl(r.photoSleeve).then((u) => { if (u) make(u); });
-    pics.set(r.id, entry);
-    if (pics.size > 48) pics.delete(pics.keys().next().value);
+    if (r.cover || r.thumb) make(r.cover || r.thumb);
+    else if (r.photoSleeve) photoUrl(r.photoSleeve).then((u) => { if (u) make(u); else done('failed'); });
     return entry;
   }
 
+  let lite = false; // a slow phone (Low Power Mode, say): fewer repaints and no idle animation
+  let paintN = 0;
   function paintAmbient(pos) {
     lastPos = pos;
     if (!recs.length || bg === 'off') return;
+    if (lite && (paintN++ & 1)) return;
     const mid = Math.max(0, Math.min(recs.length - 1, Math.round(pos)));
     const W = amb.width;
     const H = amb.height;
@@ -160,6 +172,8 @@ export function mount(root) {
     let shared = 0.2; // the plain fill underneath counts a little
     for (const [i, d] of near) {
       const r = recs[i];
+      const p = pic(r);
+      if (p.state === 'loading') continue;
       const h = hash(r.id);
       const w = Math.pow(Math.max(0, 1 - Math.abs(d) / 2.4), 3);
       shared += w;
@@ -172,7 +186,6 @@ export function mount(root) {
       actx.globalAlpha = a;
       actx.translate(cx, cy);
       actx.rotate(tilt);
-      const p = pic(r);
       const src = bg === 'pixel' ? p.small : p.tiny;
       if (src) actx.drawImage(src, -size / 2, -size / 2, size, size);
       else { actx.fillStyle = `hsl(${hue(r)} 40% 55%)`; actx.fillRect(-size / 2, -size / 2, size, size); }
@@ -303,9 +316,27 @@ export function mount(root) {
     if (k) showPicture(fc, r, k);
   }
 
+  const dts = [];
+  let lastT = 0;
+  let prewarmT = null;
+  function watchSpeed() {
+    const now = performance.now();
+    if (lastT && now - lastT < 200) {
+      dts.push(now - lastT);
+      if (dts.length > 30) dts.shift();
+      if (dts.length >= 20) {
+        const m = [...dts].sort((a, b) => a - b)[dts.length >> 1];
+        const want = lite ? m > 20 : m > 27;
+        if (want !== lite) { lite = want; stage.classList.toggle('lite', lite); }
+      }
+    }
+    lastT = now;
+  }
+
   function frame() {
     raf = 0;
     if (!recs.length) return;
+    watchSpeed();
     const pos = flow.scrollLeft / step;
     const lo = Math.max(0, Math.floor(pos) - LIVE);
     const hi = Math.min(recs.length - 1, Math.ceil(pos) + LIVE);
@@ -321,6 +352,9 @@ export function mount(root) {
     if (center !== cur) {
       cur = center;
       caption();
+      // Once the flick settles, get the pictures ready for the sleeves on both sides.
+      clearTimeout(prewarmT);
+      prewarmT = setTimeout(() => { for (let k = -8; k <= 8; k++) { const q = recs[cur + k]; if (q) pic(q); } }, 140);
     }
     // Only the sleeve in the middle may morph into the record page.
     const mid = live.get(cur);
@@ -571,6 +605,7 @@ export function mount(root) {
   return () => {
     off();
     clearTimeout(idleTimer);
+    clearTimeout(prewarmT);
     stopSpin();
     touchEvents.forEach((n) => document.removeEventListener(n, touched, { capture: true }));
     document.removeEventListener('visibilitychange', onSeen);
