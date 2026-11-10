@@ -541,7 +541,7 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .hbadge.sm { width: 17px; height: 17px; right: 3px; top: 3px; }
 .fc .hbadge { width: 34px; height: 34px; right: 12px; top: 12px; }
 .fc .hbadge svg { width: 18px; height: 18px; }
-.cap-love { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; font-size: 13px; font-weight: 600; color: var(--bad); }
+.cap-love { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; min-height: 19px; font-size: 13px; font-weight: 600; color: var(--bad); }
 .cap-love.left { justify-content: flex-start; margin-top: 6px; }
 .cap-love svg { fill: currentColor; stroke: none; }
 .chip.loved-chip { display: inline-flex; align-items: center; gap: 6px; }

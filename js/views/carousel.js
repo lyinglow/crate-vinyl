@@ -97,7 +97,7 @@ export function mount(root) {
       </div>
       <div class="flow" id="flow" tabindex="0" aria-label="Your records. Swipe sideways to browse."></div>
       <div class="cap" id="cap" role="button" tabindex="0" aria-live="polite" aria-label="Open this record">
-        <div class="cap-artist"></div><div class="cap-title"></div><div class="cap-meta"></div><div class="cap-love" id="cap-love" hidden></div>
+        <div class="cap-artist"></div><div class="cap-title"></div><div class="cap-meta"></div><div class="cap-love" id="cap-love" style="visibility:hidden"></div>
       </div>
       <p class="cap-hint" id="hint">Pull the cover up to open it</p>
     </div>`;
@@ -269,13 +269,17 @@ export function mount(root) {
 
   const list = () => M.sortRecords(M.filterRecords([...state.records.values()], F), F.sort);
 
+  let hStable = 0;
   function measure() {
     const w = flow.clientWidth || 360;
     const h = flow.clientHeight || 520;
-    C = Math.round(Math.max(150, Math.min(340, w * 0.72, h * 0.52)));
+    // Small changes in height (a sync bar, a line of text) must not resize the sleeves, so only act on a real one.
+    if (!hStable || Math.abs(h - hStable) >= 40) hStable = h;
+    C = Math.round(Math.max(150, Math.min(340, w * 0.72, hStable * 0.52)));
     step = Math.max(40, Math.round(C * 0.34));
-    const cw = Math.ceil(((stage.clientWidth || 390) * 1.5) / BLOCK);
-    const ch = Math.ceil(((stage.clientHeight || 700) * 1.5) / BLOCK);
+    const bucket = (n) => Math.ceil(n / 64) * 64; // so a line of text more or less never resizes the canvas
+    const cw = Math.ceil((bucket(stage.clientWidth || 390) * 1.5) / BLOCK);
+    const ch = Math.ceil((bucket(stage.clientHeight || 700) * 1.5) / BLOCK);
     if (amb.width !== cw || amb.height !== ch) {
       amb.width = cw;
       amb.height = ch;
@@ -435,7 +439,7 @@ export function mount(root) {
     stage.style.setProperty('--ah', hue(r));
     const n = (r.loved || []).length;
     const love = root.querySelector('#cap-love');
-    love.hidden = !n;
+    love.style.visibility = n ? 'visible' : 'hidden'; // keeps its space, so the sleeves never change size between records
     love.innerHTML = n ? `${icon('heart', 14)}<span>${n} loved track${n === 1 ? '' : 's'}</span>` : '';
   }
 
@@ -651,9 +655,14 @@ export function mount(root) {
 
   const ro = new ResizeObserver(() => {
     if (!recs.length) return;
-    const idx = Math.max(0, cur);
+    const oldStep = step;
+    const oldC = C;
+    const at = flow.scrollLeft / oldStep; // where you are, in sleeves, to a fraction
     measure();
-    flow.scrollLeft = idx * step;
+    // A change in height alone (a caption with an extra line, the sync bar showing) must never move the
+    // scroll. Only a real change of sleeve size does, and then you keep your place.
+    if (step === oldStep && C === oldC) { paintAmbient(lastPos); return; }
+    flow.scrollLeft = at * step;
     frame();
   });
   ro.observe(flow);
