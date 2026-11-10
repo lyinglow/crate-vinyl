@@ -192,12 +192,14 @@ export function mount(root) {
     return entry;
   }
 
+  const startedAt = performance.now();
   let lite = false; // a slow phone (Low Power Mode, say): fewer repaints and no idle animation
   let paintN = 0;
   function paintAmbient(pos) {
     lastPos = pos;
     if (!recs.length || bg === 'off') return;
     if (lite && (paintN++ & 1)) return;
+    const clock = (performance.now() - startedAt) / 1000;
     const mid = Math.max(0, Math.min(recs.length - 1, Math.round(pos)));
     const W = amb.width;
     const H = amb.height;
@@ -234,9 +236,12 @@ export function mount(root) {
       shared += w;
       const a = w / shared;
       const size = W * ((bg === 'pixel' ? 1.0 : 1.5) + ((h >>> 17) % 70) / 100) * (1 - Math.abs(d) * 0.08);
-      const cx = W / 2 + d * W * 0.3 + (((h >>> 3) % 100) / 100 - 0.5) * W * 0.3;
-      const cy = H * 0.46 + (((h >>> 9) % 100) / 100 - 0.5) * H * 0.34;
-      const tilt = (h % 360) * (Math.PI / 180); // any angle at all
+      // Each blob also wanders on its own slow path and turns, so the colour keeps flowing when nothing is touched.
+      const ph1 = ((h >>> 5) % 628) / 100;
+      const ph2 = ((h >>> 11) % 628) / 100;
+      const cx = W / 2 + d * W * 0.3 + (((h >>> 3) % 100) / 100 - 0.5) * W * 0.3 + Math.sin(clock * 0.31 + ph1) * W * 0.16;
+      const cy = H * 0.46 + (((h >>> 9) % 100) / 100 - 0.5) * H * 0.34 + Math.cos(clock * 0.24 + ph2) * H * 0.1;
+      const tilt = (h % 360) * (Math.PI / 180) + clock * 0.09 * (h & 1 ? 1 : -1); // any angle at all, turning slowly
       actx.save();
       actx.globalAlpha = a;
       actx.translate(cx, cy);
@@ -290,8 +295,8 @@ export function mount(root) {
       ambWrap.style.margin = `${-ch / 2}px 0 0 ${-cw / 2}px`;
       ambWrap.style.setProperty('--amb-scale', String(BLOCK));
       // how far the colour wanders, in canvas pixels: about a tenth of the screen each way
-      ambWrap.style.setProperty('--mx', `${((stage.clientWidth || 390) * 0.1) / BLOCK}px`);
-      ambWrap.style.setProperty('--my', `${((stage.clientHeight || 700) * 0.1) / BLOCK}px`);
+      ambWrap.style.setProperty('--mx', `${((stage.clientWidth || 390) * 0.16) / BLOCK}px`);
+      ambWrap.style.setProperty('--my', `${((stage.clientHeight || 700) * 0.16) / BLOCK}px`);
     }
     flow.style.setProperty('--C', `${C}px`);
     flow.style.setProperty('--step', `${step}px`);
@@ -653,6 +658,20 @@ export function mount(root) {
   if (!opened()) hint.classList.add('show');
   build(lastId);
 
+  // The background repaints itself about 20 times a second so it keeps moving on its own. The canvas is
+  // tiny, so this costs very little. It stops when the app is hidden, the background is Plain, or the
+  // phone asks for reduced motion.
+  let driftRaf = 0;
+  let lastDrift = 0;
+  function drift(now) {
+    driftRaf = requestAnimationFrame(drift);
+    if (document.hidden || bg === 'off' || reduce() || !recs.length) return;
+    if (now - lastDrift < (lite ? 90 : 48)) return;
+    lastDrift = now;
+    paintAmbient(lastPos);
+  }
+  if (bg !== 'off') driftRaf = requestAnimationFrame(drift);
+
   const ro = new ResizeObserver(() => {
     if (!recs.length) return;
     const oldStep = step;
@@ -680,6 +699,7 @@ export function mount(root) {
     off();
     clearTimeout(idleTimer);
     clearTimeout(prewarmT);
+    if (driftRaf) cancelAnimationFrame(driftRaf);
     stopSpin();
     touchEvents.forEach((n) => document.removeEventListener(n, touched, { capture: true }));
     document.removeEventListener('visibilitychange', onSeen);
