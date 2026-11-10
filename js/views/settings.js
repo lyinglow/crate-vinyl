@@ -1,5 +1,5 @@
 // Settings and the welcome screen: connect Discogs, import, defaults, backup.
-import { spinNow } from './carousel.js';
+import { spinNow, scrollReport } from './carousel.js';
 import { state, saveSettings, wipeAll, subscribe } from '../store.js';
 import * as M from '../model.js';
 import { D } from '../discogs.js';
@@ -7,7 +7,7 @@ import { importCollection, refreshAllPrices, kick, pendingPrices } from '../sync
 import { exportCsv, exportBackup, restoreBackup } from '../exporter.js';
 import * as SP from '../spotify.js';
 import { lovedCount } from './loved.js';
-import { esc, icon, toast, confirmSheet, chipRow, bindChips, describeError, $ } from '../ui.js';
+import { esc, icon, openSheet, toast, confirmSheet, chipRow, bindChips, describeError, $ } from '../ui.js';
 
 const CODES = M.GRADES.map((g) => g.code);
 
@@ -160,6 +160,12 @@ export function mount(root) {
           ${window.matchMedia('(prefers-reduced-motion: reduce)').matches ? '<p class="hint-text">Your phone has Reduce Motion on, so Crate will not spin by itself. Turn it off in iPhone Settings, Accessibility, Motion. Turn now still works.</p>' : ''}
         </div>
 
+        <h3 class="sec">Scroll check</h3>
+        <div class="card">
+          <p class="muted">If the Library scroll ever looks jumpy: scroll through your records for a few seconds, come back here and tap the button. It shows what your phone did, so the fault can be found.</p>
+          <div class="row-btns"><button type="button" class="btn small" id="scroll-report">Show my scroll report</button></div>
+        </div>
+
         <h3 class="sec">Spotify</h3>
         <div class="card" id="sp-card">${spotifyCard(s)}</div>
 
@@ -220,6 +226,13 @@ export function mount(root) {
       saveSettings({ autoSpin: Number(b.dataset.spin) });
       toast(Number(b.dataset.spin) ? 'Saved.' : 'Turned off.');
     });
+    $('#scroll-report', root).onclick = () => {
+      const text = scrollReport();
+      const sh = openSheet({ title: 'Scroll report', body: `<pre class="report" id="rep-text">${esc(text)}</pre><div class="row-btns"><button class="btn primary" id="rep-copy">Copy</button></div><p class="hint-text">Copy it and paste it into the chat.</p>` });
+      sh.el.querySelector('#rep-copy').onclick = async () => {
+        try { await navigator.clipboard.writeText(text); toast('Copied.'); } catch { toast('Could not copy. Select the text and copy it.'); }
+      };
+    };
     $('#spin-now', root).onclick = () => { spinNow(); location.hash = '#/library'; };
     $('#t-coll', root).onchange = (e) => { saveSettings({ addToCollection: e.target.checked }); if (e.target.checked) kick(); };
     $('#t-price', root).onchange = (e) => { saveSettings({ fetchPrices: e.target.checked }); if (e.target.checked) kick(); };

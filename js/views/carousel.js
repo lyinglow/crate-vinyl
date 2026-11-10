@@ -44,6 +44,39 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let spinSoon = false; // set by Settings, so "Spin now" shows it working
 export function spinNow() { spinSoon = true; }
+// A short memory of how the row moved, so Settings can show what this phone really does while you scroll.
+const trace = [];
+const centres = [];
+export function scrollReport() {
+  const bursts = [];
+  let cur = [];
+  for (const p of trace) {
+    if (cur.length && p[0] - cur[cur.length - 1][0] > 250) { bursts.push(cur); cur = []; }
+    cur.push(p);
+  }
+  if (cur.length) bursts.push(cur);
+  const real = bursts.filter((b) => b.length >= 8).slice(-3);
+  const lines = [`Crate scroll check`, `Samples kept: ${trace.length}. Scrolls found: ${real.length}.`];
+  real.forEach((b, i) => {
+    const dts = [];
+    const dxs = [];
+    for (let k = 1; k < b.length; k++) { dts.push(b[k][0] - b[k - 1][0]); dxs.push(b[k][1] - b[k - 1][1]); }
+    const total = b[b.length - 1][1] - b[0][1];
+    const dir = total >= 0 ? 1 : -1;
+    const moving = dxs.filter((d) => Math.abs(d) >= 0.5);
+    let flips = 0;
+    for (let k = 1; k < moving.length; k++) if (Math.sign(moving[k]) !== Math.sign(moving[k - 1])) flips++;
+    const back = moving.filter((d) => Math.sign(d) !== dir);
+    const maxBack = back.reduce((m, d) => Math.max(m, Math.abs(d)), 0);
+    const sorted = [...dts].sort((a, c) => a - c);
+    lines.push(`Scroll ${i + 1}: ${b.length} frames over ${Math.round(b[b.length - 1][0] - b[0][0])} ms, moved ${Math.round(total)} px. Typical gap ${sorted[sorted.length >> 1].toFixed(1)} ms. Gaps over 25 ms: ${dts.filter((d) => d > 25).length}. Longest gap ${Math.round(Math.max(...dts))} ms. Direction changes: ${flips}. Biggest step backwards: ${maxBack.toFixed(1)} px.`);
+  });
+  let bounce = 0;
+  for (let k = 2; k < centres.length; k++) if (centres[k][1] === centres[k - 2][1] && centres[k][0] - centres[k - 2][0] < 400) bounce++;
+  lines.push(`Middle record flipped back and forth: ${bounce} times.`);
+  lines.push(`Phone: ${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 90)}. Pixel ratio ${window.devicePixelRatio}.`);
+  return lines.join('\n');
+}
 let lastId = null; // the record that was in the middle when you last left
 const picture = new Map(); // record id to the picture number showing in the flow
 
@@ -360,6 +393,8 @@ export function mount(root) {
     raf = 0;
     if (!recs.length) return;
     watchSpeed();
+    trace.push([performance.now(), flow.scrollLeft]);
+    if (trace.length > 1500) trace.splice(0, 300);
     const pos = flow.scrollLeft / step;
     const lo = Math.max(0, Math.floor(pos) - LIVE);
     const hi = Math.min(recs.length - 1, Math.ceil(pos) + LIVE);
@@ -374,6 +409,8 @@ export function mount(root) {
     const center = Math.max(0, Math.min(recs.length - 1, Math.round(pos)));
     if (center !== cur) {
       cur = center;
+      centres.push([performance.now(), center]);
+      if (centres.length > 200) centres.splice(0, 50);
       caption();
       // Once the flick settles, get the pictures ready for the sleeves on both sides.
       clearTimeout(prewarmT);
@@ -381,11 +418,7 @@ export function mount(root) {
     }
     // Only the sleeve in the middle may morph into the record page.
     const mid = live.get(cur);
-    if (mid && vtEl !== mid) {
-      if (vtEl && vtEl.firstElementChild) vtEl.firstElementChild.style.viewTransitionName = '';
-      if (mid.firstElementChild) mid.firstElementChild.style.viewTransitionName = 'cover';
-      vtEl = mid;
-    }
+    if (mid && !vtEl) setViewName(mid); // once per build, for the way back from a record. It moves when you open one.
   }
 
   function caption() {
@@ -431,6 +464,7 @@ export function mount(root) {
   // left sliding over its neighbour.
   let turnId = 0;
   function abortTurn() {
+    if (!flipping) return; // nothing in flight, so no need to touch the sleeves while you scroll
     turnId++;
     for (const el of live.values()) {
       const box = el.querySelector('.cover');
@@ -499,7 +533,15 @@ export function mount(root) {
 
   // ---------------------------------------------------------------- opening a record
 
+  function setViewName(el) {
+    if (vtEl && vtEl.firstElementChild) vtEl.firstElementChild.style.viewTransitionName = '';
+    if (el && el.firstElementChild) el.firstElementChild.style.viewTransitionName = 'cover';
+    vtEl = el;
+  }
+
   function open(id) {
+    const at = recs.findIndex((x) => x.id === id);
+    if (live.has(at)) setViewName(live.get(at));
     lastId = id;
     markOpened();
     location.hash = `#/record/${id}`;
