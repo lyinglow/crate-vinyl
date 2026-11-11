@@ -242,7 +242,7 @@ export function mount(root) {
   }
 
   function draw() {
-    const all = [...state.records.values()];
+    const all = [...state.records.values()].filter((r) => !r.wanted);
     const ready = all.filter((r) => r.status === 'for_sale' && !r.listingId);
     const listed = all.filter((r) => r.status === 'for_sale' && r.listingId);
     const sold = all.filter((r) => r.status === 'sold').sort((a, b) => (b.soldAt || 0) - (a.soldAt || 0));

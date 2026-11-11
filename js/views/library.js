@@ -21,6 +21,7 @@ export function mount(root) {
       <div class="shortcuts">
         <a class="short" href="#/mixes">${icon('list', 20)}<span>Mixes</span><em id="n-mixes"></em></a>
         <a class="short" href="#/loved">${icon('heart', 20)}<span>Loved tracks</span><em id="n-loved"></em></a>
+        <a class="short" href="#/wanted">${icon('bookmark', 20)}<span>Wanted</span><em id="n-wanted"></em></a>
       </div>
       <div id="lib-banner"></div>
       <div class="toolbar">
@@ -41,7 +42,7 @@ export function mount(root) {
   function banner() {
     const el = $('#lib-banner', root);
     const st = state.settings;
-    const n = state.records.size;
+    const n = [...state.records.values()].filter((r) => !r.wanted).length;
     if (!st.token) {
       el.innerHTML = `<a class="banner" href="#/welcome">Connect your Discogs account to start. <b>Connect</b></a>`;
     } else if (n >= 20 && Date.now() - st.lastBackup > 14 * 864e5) {
@@ -77,12 +78,13 @@ export function mount(root) {
 
   function draw() {
     banner();
-    const all = [...state.records.values()];
+    const all = [...state.records.values()].filter((r) => !r.wanted);
     list = M.sortRecords(M.filterRecords(all, v), v.sort);
     const n = all.length;
     $('#lib-count', root).textContent = n === 0 ? '' : list.length === n ? `${n.toLocaleString('en-GB')} record${n === 1 ? '' : 's'}` : `${list.length.toLocaleString('en-GB')} of ${n.toLocaleString('en-GB')}`;
     $('#n-mixes', root).textContent = state.mixes.length || '';
     $('#n-loved', root).textContent = lovedCount() || '';
+    $('#n-wanted', root).textContent = [...state.records.values()].filter((r) => r.wanted).length || '';
     $('#btn-view', root).innerHTML = icon(state.settings.view === 'list' ? 'grid' : 'list', 22);
     $('#filter-dot', root).hidden = !filtersOn() && v.sort === 'added';
     if (observer) observer.disconnect();
@@ -155,7 +157,7 @@ export function mount(root) {
 }
 
 function filterSheet(onApply) {
-  const f = M.facets([...state.records.values()]);
+  const f = M.facets([...state.records.values()].filter((r) => !r.wanted));
   const sel = (name, opts, cur, any) => `<select name="${name}"><option value="">${any}</option>${opts.map((o) => `<option${o === cur ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
   const sizes = [[2, 'Large'], [3, 'Medium'], [4, 'Small']];
   const s = openSheet({

@@ -376,6 +376,7 @@ export async function enqueueAllLoved() {
 
 // A new record: add all its tracks.
 export async function enqueueRecord(rec) {
+  if (rec.wanted) return; // a record you only want does not go on your Spotify playlists
   if (!connected() || S().spotifyAll === false || rec.spAllDone) return;
   if (await push({ kind: 'rec', recId: rec.id })) { note(); kickLoved(); }
 }
@@ -384,7 +385,7 @@ export async function enqueueRecord(rec) {
 export async function enqueueWholeCollection() {
   let n = 0;
   for (const rec of state.records.values()) {
-    if (rec.spAllDone || rec.status === 'sold') continue;
+    if (rec.spAllDone || rec.status === 'sold' || rec.wanted) continue;
     if (!(rec.tracklist && rec.tracklist.length) && !(rec.source === 'discogs' && rec.releaseId)) continue;
     if (await push({ kind: 'rec', recId: rec.id })) n++;
   }

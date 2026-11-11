@@ -6,6 +6,7 @@ import { esc, cover, icon, openSheet, toast, chipRow, bindChips, pickPhoto, hydr
 import { Scanner, decodeFile, beep, unlockAudio } from '../scanner.js';
 import { openMatchSheet, grades } from './match.js';
 import { kick } from '../sync.js';
+import { target, targetChips, bindTarget } from '../target.js';
 
 // Lives as long as the app is open: what you added in this sitting.
 const session = { added: [] };
@@ -57,6 +58,7 @@ function mountBarcode(root) {
   root.innerHTML = `
     <div class="page scan">
       ${seg('barcode')}
+      ${targetChips('add-target')}
       <div class="viewport" id="vp">
         <video id="cam" playsinline muted autoplay></video>
         <div class="scanguide" id="guide"></div>
@@ -135,6 +137,7 @@ function mountBarcode(root) {
     s.el.querySelector('#nf-skip').onclick = () => s.close();
   }
 
+  bindTarget(root.querySelector('#add-target'));
   root.querySelector('#bc-form').onsubmit = (e) => {
     e.preventDefault();
     unlockAudio();
@@ -198,6 +201,7 @@ function mountSearch(root, linkId) {
   root.innerHTML = `
     <div class="page scan">
       ${seg('search', linkId)}
+      ${linkTo ? '' : targetChips('add-target')}
       ${linkTo ? `<p class="note">Finding a match for <b>${esc(linkTo.artist)} · ${esc(linkTo.title)}</b></p>` : ''}
       <form id="sf" class="form">
         <label class="field"><span>Keywords</span><input name="keywords" type="search" value="${esc(pre.keywords)}" placeholder="Anything: artist, title, label, track, year" autocomplete="off" enterkeyhint="search"></label>
@@ -221,6 +225,8 @@ function mountSearch(root, linkId) {
       <div id="results"></div>
     </div>`;
 
+  const tgt = root.querySelector('#add-target');
+  if (tgt) bindTarget(tgt);
   const form = root.querySelector('#sf');
   const out = root.querySelector('#results');
 
@@ -337,6 +343,7 @@ function mountManual(root) {
   root.innerHTML = `
     <div class="page scan">
       ${seg('manual')}
+      ${targetChips('add-target')}
       <p class="hint-text">For white labels and anything Discogs does not have. You can match it to Discogs later from its page.</p>
       <form id="mf" class="form">
         <label class="field"><span>Artist</span><input name="artist" required autocomplete="off"></label>
@@ -350,14 +357,16 @@ function mountManual(root) {
           <label class="field"><span>Barcode</span><input name="barcode" inputmode="numeric" value="${esc(pre.barcode || '')}"></label>
         </div>
         <div class="field"><span>Format</span><div class="chips" id="sizes">${SIZES.map((s) => `<button type="button" class="chip${s === size ? ' on' : ''}" data-code="${esc(s)}">${esc(s)}</button>`).join('')}</div></div>
-        <div class="field"><span>Record</span>${chipRow(M.GRADES.map((g) => g.code), grades.media || state.settings.mediaGrade, { attr: 'id="g-media"' })}</div>
-        <div class="field"><span>Sleeve</span>${chipRow(M.GRADES.map((g) => g.code), grades.sleeve || state.settings.sleeveGrade, { attr: 'id="g-sleeve"' })}</div>
+        <div id="m-gr">
+          <div class="field"><span>Record</span>${chipRow(M.GRADES.map((g) => g.code), grades.media || state.settings.mediaGrade, { attr: 'id="g-media"' })}</div>
+          <div class="field"><span>Sleeve</span>${chipRow(M.GRADES.map((g) => g.code), grades.sleeve || state.settings.sleeveGrade, { attr: 'id="g-sleeve"' })}</div>
+        </div>
         <label class="field"><span>Notes</span><textarea name="notes" rows="2" placeholder="Anything useful: test pressing, signed, where you got it"></textarea></label>
         <div class="two photos">
           <button type="button" class="photo-btn" id="p-sleeve"><span>${icon('camera', 22)}</span>Sleeve photo</button>
           <button type="button" class="photo-btn" id="p-label"><span>${icon('camera', 22)}</span>Label photo</button>
         </div>
-        <button class="btn primary big" type="submit">Save record</button>
+        <button class="btn primary big" type="submit" id="m-save">Save record</button>
       </form>
     </div>`;
 
@@ -367,6 +376,12 @@ function mountManual(root) {
   bindChips(root.querySelector('#sizes'), (c) => { if (c) size = c; });
   bindChips(root.querySelector('#g-media'), (c) => { if (c) mg = c; });
   bindChips(root.querySelector('#g-sleeve'), (c) => { if (c) sg = c; });
+  const showTarget = () => {
+    root.querySelector('#m-gr').hidden = target.wanted;
+    root.querySelector('#m-save').textContent = target.wanted ? 'Add to wanted list' : 'Save record';
+  };
+  showTarget();
+  bindTarget(root.querySelector('#add-target'), showTarget);
 
   const showPhoto = (btn, blob) => {
     const url = URL.createObjectURL(blob);
@@ -400,12 +415,12 @@ function mountManual(root) {
       styles: [],
       thumb: '',
       cover: '',
-    }, { mediaGrade: mg, sleeveGrade: sg, notes: g('notes') });
+    }, { wanted: target.wanted, mediaGrade: target.wanted ? '' : mg, sleeveGrade: target.wanted ? '' : sg, notes: g('notes') });
     if (sleeve) { rec.photoSleeve = `${rec.id}-sleeve`; await putPhoto(rec.photoSleeve, sleeve); }
     if (label) { rec.photoLabel = `${rec.id}-label`; await putPhoto(rec.photoLabel, label); }
     await saveRecord(rec);
     session.added.unshift(rec.id);
-    toast(`Saved ${rec.title}`);
+    toast(rec.wanted ? `${rec.title} is on your wanted list` : `Saved ${rec.title}`);
     // Stay on this screen, ready for the next one.
     form.reset();
     root.querySelectorAll('.photo-btn').forEach((b) => { b.classList.remove('has'); });

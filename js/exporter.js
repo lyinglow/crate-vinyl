@@ -69,7 +69,7 @@ export async function deliver(blob, name) {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export async function exportCsv() {
-  const list = M.sortRecords([...state.records.values()], 'artist');
+  const list = M.sortRecords([...state.records.values()].filter((r) => !r.wanted), 'artist'); // the wanted list is not part of the collection
   const blob = new Blob([toCsv(list)], { type: 'text/csv' });
   return deliver(blob, `crate-collection-${today()}.csv`);
 }

@@ -4,7 +4,8 @@ import { state, saveRecord, saveSettings, putPhoto, deleteRecord } from '../stor
 import * as M from '../model.js';
 import { D } from '../discogs.js';
 import { esc, cover, openSheet, toast, chipRow, bindChips, describeError } from '../ui.js';
-import { kick, removeFromCollection } from '../sync.js';
+import { kick, removeFromCollection, gotIt, removeWanted } from '../sync.js';
+import { target, targetChips, bindTarget } from '../target.js';
 
 // The grades you picked last stay selected for the next record.
 export const grades = { media: '', sleeve: '' };
@@ -59,6 +60,7 @@ export function openMatchSheet({ cands, start = 0, barcode = '', labelBlob = nul
     className: 'match',
     onClose: () => { if (photoUrl) URL.revokeObjectURL(photoUrl); if (onClose) onClose(); },
     body: `
+      ${plain ? '' : targetChips('m-target')}
       <div class="m-top">
         <div class="m-cover" id="m-cover"></div>
         <div class="m-info" id="m-info"></div>
@@ -95,19 +97,31 @@ export function openMatchSheet({ cands, start = 0, barcode = '', labelBlob = nul
       <p class="m">${esc([c.country, c.year, M.formatShort(c)].filter(Boolean).join(' · '))}</p>
       ${photo}`;
     const note = $('#m-note');
-    const have = [...state.records.values()].filter((r) => r.releaseId && r.releaseId === c.releaseId && r.status !== 'sold' && (!linkTo || r.id !== linkTo.id) && (!changeFor || r.id !== changeFor.id)).length;
-    if (have && !plain) {
-      note.hidden = false;
-      note.textContent = `You already have ${have} cop${have > 1 ? 'ies' : 'y'} of this one.`;
-    } else {
-      note.hidden = true;
+    const same = [...state.records.values()].filter((r) => r.releaseId && r.releaseId === c.releaseId && r.status !== 'sold' && (!linkTo || r.id !== linkTo.id) && (!changeFor || r.id !== changeFor.id));
+    const have = same.filter((r) => !r.wanted).length;
+    const onWanted = same.some((r) => r.wanted);
+    const wantIt = target.wanted && !plain;
+    let msg = '';
+    if (!plain) {
+      if (wantIt) msg = have ? 'You already own this one.' : onWanted ? 'This is already on your wanted list.' : '';
+      else if (have) msg = `You already have ${have} cop${have > 1 ? 'ies' : 'y'} of this one.`;
+      else if (onWanted) msg = 'This is on your wanted list. Adding it moves it to your library.';
     }
-    $('#m-add').textContent = changeFor ? 'Use this pressing' : linkTo ? 'Use this match' : have ? 'Add another copy' : 'Add to library';
+    note.hidden = !msg;
+    note.textContent = msg;
+    const addBtn = $('#m-add');
+    addBtn.disabled = wantIt && onWanted;
+    addBtn.textContent = changeFor ? 'Use this pressing' : linkTo ? 'Use this match' : wantIt ? (onWanted ? 'Already wanted' : 'Add to wanted list') : have ? 'Add another copy' : onWanted ? 'I got it' : 'Add to library';
     const others = $('#m-others');
     if (cands.length > 1) { others.hidden = false; others.textContent = `Other matches (${cands.length - 1})`; } else others.hidden = true;
     $('#m-press').hidden = !c.masterId;
   }
   fill();
+  if (!plain) {
+    const showGrades = () => { const g = $('.m-grades'); if (g) g.hidden = target.wanted; };
+    showGrades();
+    bindTarget($('#m-target'), () => { showGrades(); fill(); });
+  }
 
   // ---- add ----
   $('#m-add').onclick = async () => {
@@ -130,6 +144,26 @@ export function openMatchSheet({ cands, start = 0, barcode = '', labelBlob = nul
         kick();
         s.close();
         toast('Matched on Discogs');
+      } else if (target.wanted) {
+        const rec = M.newRecord(c, {
+          wanted: true,
+          barcode: barcode || c.barcode || '',
+          wantDetail: true,
+        });
+        await saveRecord(rec);
+        kick();
+        s.close();
+        if (onAdded) onAdded(rec);
+        toast(`${rec.title} is on your wanted list`, { action: 'Undo', onAction: () => removeWanted(rec) });
+      } else if ([...state.records.values()].some((r) => r.wanted && r.releaseId && r.releaseId === c.releaseId)) {
+        // It was on the wanted list: it moves to the library instead of being added twice.
+        const rec = [...state.records.values()].find((r) => r.wanted && r.releaseId && r.releaseId === c.releaseId);
+        rec.mediaGrade = grades.media;
+        rec.sleeveGrade = grades.sleeve;
+        await gotIt(rec);
+        s.close();
+        if (onAdded) onAdded(rec);
+        toast(`${rec.title} moved from wanted to your library`);
       } else {
         const rec = M.newRecord(c, {
           mediaGrade: grades.media,

@@ -27,6 +27,16 @@ Today the app is the master copy. It sends changes to Discogs, but Discogs edits
 - Should it run when the app opens, or only when you tap the button? Suggest the button, plus a reminder after a week.
 - Records moved between Discogs folders. Treat as the same record.
 
+## Wanted list: what could come next
+
+Built: a Wanted list, separate from your collection. Choose Wanted list under Adding to when you scan, search or add by hand. Wanted records go on your Discogs wantlist, show the cheapest price and how many are for sale, and move to your library with I got it.
+
+Could come next:
+- **A Spotify playlist for wanted tracks, both ways.** Out: a private "Crate wanted" playlist with the tracks of every wanted record. In: a "To hunt" playlist. Add a track to it in Spotify, and the next time you open Crate it searches Discogs for vinyl with that track and asks you to pick the pressing, then adds it to Wanted. Spotify cannot tell Crate when something changes, so Crate would check when it is open.
+- **Price alerts.** Set a price you will pay for a wanted record. Crate flags it when the cheapest copy on Discogs drops to that or below. It can only check while the app is open, since an iPhone Home Screen app cannot run in the background.
+- **Buying links for each wanted record.** Today there is one link to the release's for sale page on Discogs. Discogs does not let an app list the individual copies for sale, only the cheapest price and the count.
+- Sync the other way: records added to your Discogs wantlist on discogs.com appear in Crate. Same plan as the collection sync above.
+
 ## Spotify: what is built, and what could come next
 
 Built: hearted tracks go to a private **Crate loved** playlist, and any mix can be sent to Spotify. See docs/SETUP.md.

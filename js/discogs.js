@@ -158,6 +158,8 @@ export const D = {
     api(`/users/${enc(u)}/collection/folders/${folder}/releases/${releaseId}`, { method: 'POST', priority: 1 }),
   collectionRemove: (u, folder, releaseId, instance) =>
     api(`/users/${enc(u)}/collection/folders/${folder}/releases/${releaseId}/instances/${instance}`, { method: 'DELETE', priority: 1 }),
+  wantAdd: (u, releaseId) => api(`/users/${enc(u)}/wants/${releaseId}`, { method: 'PUT', priority: 1 }),
+  wantRemove: (u, releaseId) => api(`/users/${enc(u)}/wants/${releaseId}`, { method: 'DELETE', priority: 1 }),
   collectionFields: (u) => api(`/users/${enc(u)}/collection/fields`, { priority: 1 }),
   setField: (u, folder, releaseId, instance, fieldId, value) =>
     api(`/users/${enc(u)}/collection/folders/${folder}/releases/${releaseId}/instances/${instance}/fields/${fieldId}`,

@@ -92,6 +92,7 @@ export function mount(root) {
         <div><div class="stage-title">Library</div><div class="stage-sub" id="st-count"></div></div>
         <div class="stage-actions">
           <button class="pill-btn" id="genre-pill" aria-label="Filter by genre"></button>
+          <a class="icon-btn" href="#/wanted" aria-label="Wanted list">${icon('bookmark', 22)}<i class="cnt" id="st-want" hidden></i></a>
           <a class="icon-btn" href="#/browse" aria-label="Browse as a grid. Search and filter.">${icon('grid', 22)}<i class="dot" id="st-dot" hidden></i></a>
         </div>
       </div>
@@ -112,6 +113,15 @@ export function mount(root) {
     pill.classList.toggle('on', genreOn());
     root.querySelector('#st-dot').hidden = !filtersOn() || (genreOn() && !F.q && !F.label && !F.artist && !F.format && !F.from && !F.to && F.status === 'all');
   };
+  const ownedCount = () => { let n = 0; for (const r of state.records.values()) if (!r.wanted) n++; return n; };
+  const paintWanted = () => {
+    let n = 0;
+    for (const r of state.records.values()) if (r.wanted) n++;
+    const el = root.querySelector('#st-want');
+    el.hidden = !n;
+    el.textContent = n > 99 ? '99+' : String(n);
+  };
+  paintWanted();
   paintPill();
   pill.onclick = () => openGenreSheet(() => { build(lastId); paintPill(); armIdle(); });
 
@@ -313,7 +323,7 @@ export function mount(root) {
       cap.hidden = true;
       hint.hidden = true;
       root.querySelector('#st-count').textContent = '';
-      const total = state.records.size;
+      const total = ownedCount();
       stage.insertAdjacentHTML('beforeend', `<div class="empty" id="stage-empty">
         <div class="disc"></div>
         <h2>${total ? 'Nothing matches' : 'Your library is empty'}</h2>
@@ -438,7 +448,7 @@ export function mount(root) {
     cap.querySelector('.cap-artist').textContent = r.artist || 'Unknown artist';
     cap.querySelector('.cap-title').textContent = r.title;
     cap.querySelector('.cap-meta').textContent = [r.year, r.label, M.formatShort(r), badge].filter(Boolean).join(' · ');
-    root.querySelector('#st-count').textContent = recs.length === state.records.size
+    root.querySelector('#st-count').textContent = recs.length === ownedCount()
       ? `${(cur + 1).toLocaleString('en-GB')} of ${recs.length.toLocaleString('en-GB')}`
       : `${(cur + 1).toLocaleString('en-GB')} of ${recs.length.toLocaleString('en-GB')} (filtered)`;
     stage.style.setProperty('--ah', hue(r));
@@ -690,7 +700,7 @@ export function mount(root) {
   const off = subscribe((k) => {
     if (k !== 'records') return;
     clearTimeout(redraw);
-    redraw = setTimeout(() => { build(lastId); paintPill(); armIdle(); }, 250);
+    redraw = setTimeout(() => { build(lastId); paintPill(); paintWanted(); armIdle(); }, 250);
   });
 
   armIdle();

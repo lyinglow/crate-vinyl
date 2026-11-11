@@ -4,7 +4,7 @@
 //   detail   fetch tracklist, images, pressing details
 //   fields   write your condition grades and notes to Discogs
 //   price    fetch price suggestions
-import { state, saveRecord, saveRecords, saveSettings, emit } from './store.js';
+import { state, saveRecord, saveRecords, saveSettings, emit, deleteRecord } from './store.js';
 import { D, ApiError } from './discogs.js';
 import * as M from './model.js';
 import * as SP from './spotify.js';
@@ -33,6 +33,13 @@ function tasksFor(r) {
   const s = state.settings;
   const out = [];
   if (r.source !== 'discogs' || !r.releaseId) return out;
+  if (r.wanted) {
+    // A record you want: put it on your Discogs wantlist and get its details. Nothing else.
+    if (s.username && s.addToWantlist !== false && !r.wantSynced && !r.noWant) out.push(['wantAdd', 1]);
+    if (r.wantDetail && !r.detail) out.push(['detail', 2]);
+    if (needsPrice(r)) out.push(['price', 5]); // the cheapest copy for sale, to show on the wanted list
+    return out.filter(([k]) => !failed.has(`${r.id}:${k}`));
+  }
   const live = r.status !== 'sold';
   if (s.addToCollection && s.username && live && !r.instanceId && !r.noCollection) out.push(['collAdd', 1]);
   if (r.wantDetail && !r.detail) out.push(['detail', 2]);
@@ -65,6 +72,7 @@ export function pendingPrices() {
 
 const LABELS = {
   collAdd: 'Adding to your Discogs collection',
+  wantAdd: 'Adding to your Discogs wantlist',
   detail: 'Getting pressing details',
   fields: 'Saving your grades to Discogs',
   price: 'Checking prices',
@@ -98,6 +106,7 @@ async function loop() {
         if (e && e.status === 0) { setStatus({ error: e.message }); timer = setTimeout(kick, 30000); break; }
         failed.add(`${best.rec.id}:${best.kind}`);
         if (best.kind === 'collAdd') { best.rec.noCollection = true; best.rec.syncNote = e.message; }
+        if (best.kind === 'wantAdd') { best.rec.noWant = true; best.rec.syncNote = e.message; }
         if (best.kind === 'detail') best.rec.wantDetail = false;
         if (state.records.has(best.rec.id)) await saveRecord(best.rec, { quiet: true });
         console.warn('Sync task failed', best.kind, e);
@@ -111,7 +120,10 @@ async function loop() {
 
 async function runTask(rec, kind) {
   const u = state.settings.username;
-  if (kind === 'collAdd') {
+  if (kind === 'wantAdd') {
+    await D.wantAdd(u, rec.releaseId);
+    rec.wantSynced = true;
+  } else if (kind === 'collAdd') {
     const res = await D.collectionAdd(u, rec.releaseId, 1);
     if (!state.records.has(rec.id)) {
       // Deleted while we were adding. Undo it on Discogs.
@@ -124,11 +136,11 @@ async function runTask(rec, kind) {
   } else if (kind === 'detail') {
     const rel = await D.release(rec.releaseId, 2);
     M.applyRelease(rec, rel, state.settings.currency);
-    if (state.records.has(rec.id)) { await saveRecord(rec, { quiet: true }); SP.enqueueRecord(rec); } // a new vinyl: its tracks go to Spotify too
+    if (state.records.has(rec.id)) { await saveRecord(rec, { quiet: true }); if (!rec.wanted) SP.enqueueRecord(rec); } // a new vinyl: its tracks go to Spotify too
   } else if (kind === 'fields') {
     await pushFields(rec);
   } else if (kind === 'price') {
-    await fetchMarket(rec, 5, false);
+    await fetchMarket(rec, 5, !!rec.wanted);
   }
   if (state.records.has(rec.id)) await saveRecord(rec, { quiet: true });
 }
@@ -314,4 +326,29 @@ export async function checkListings() {
     await saveRecord(r);
   }
   return { checked: recs.length, sold, changed };
+}
+
+// A wanted record you have now found: it joins your collection, and leaves your Discogs wantlist.
+export async function gotIt(rec) {
+  const u = state.settings.username;
+  const wasSynced = rec.wantSynced;
+  rec.wanted = false;
+  rec.status = 'keeping';
+  rec.mediaGrade = rec.mediaGrade || state.settings.mediaGrade;
+  rec.sleeveGrade = rec.sleeveGrade || state.settings.sleeveGrade;
+  rec.noCollection = false;
+  rec.fieldsDirty = true;
+  rec.wantSynced = false;
+  rec.added = Date.now();
+  await saveRecord(rec);
+  if (wasSynced && u && rec.releaseId) D.wantRemove(u, rec.releaseId).catch(() => {});
+  if (rec.detail) SP.enqueueRecord(rec);
+  kick();
+}
+
+// Take a record off the wanted list for good.
+export async function removeWanted(rec) {
+  const u = state.settings.username;
+  if (rec.wantSynced && u && rec.releaseId) { try { await D.wantRemove(u, rec.releaseId); } catch { /* it can stay on Discogs */ } }
+  await deleteRecord(rec.id);
 }

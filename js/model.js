@@ -89,6 +89,7 @@ export function isVinyl(r) {
 export function newRecord(shell, extra = {}) {
   return {
     status: 'keeping',
+    wanted: false,
     mediaGrade: '',
     sleeveGrade: '',
     notes: '',
@@ -320,6 +321,7 @@ export function filterRecords(list, f) {
   const from = f.from ? Number(f.from) : 0;
   const to = f.to ? Number(f.to) : 9999;
   return list.filter((r) => {
+    if (f.wanted ? !r.wanted : r.wanted) return false; // wanted records only appear when you ask for them
     if (f.status && f.status !== 'all' && r.status !== f.status) return false;
     if (f.genre) {
       if (f.genre === NONE) { if ((r.genres || []).length) return false; } else if (!(r.genres || []).includes(f.genre)) return false;

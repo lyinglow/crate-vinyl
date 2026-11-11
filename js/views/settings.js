@@ -297,7 +297,7 @@ export function mount(root) {
     }
     get('#sp-all').onchange = (e) => saveSettings({ spotifyAll: e.target.checked });
     get('#sp-whole').onclick = async () => {
-      const recs = [...state.records.values()].filter((r) => !r.spAllDone && r.status !== 'sold' && ((r.tracklist && r.tracklist.length) || (r.source === 'discogs' && r.releaseId)));
+      const recs = [...state.records.values()].filter((r) => !r.spAllDone && r.status !== 'sold' && !r.wanted && ((r.tracklist && r.tracklist.length) || (r.source === 'discogs' && r.releaseId)));
       if (!recs.length) { toast('Every record is already done'); return; }
       const tracks = recs.reduce((t, r) => t + ((r.tracklist && r.tracklist.length) || 10), 0);
       const mins = Math.max(1, Math.round((tracks * 0.4) / 60));

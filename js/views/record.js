@@ -1,7 +1,8 @@
 // One record: sleeve, status, condition, value, notes, tracklist, pressing details.
 import { state, saveRecord, deleteRecord, subscribe } from '../store.js';
 import * as M from '../model.js';
-import { refreshMarket, ensureDetail, removeFromCollection, deleteListing, kick } from '../sync.js';
+import { refreshMarket, ensureDetail, removeFromCollection, deleteListing, kick, gotIt, removeWanted } from '../sync.js';
+import { priceLine } from './wanted.js';
 import { esc, icon, openSheet, confirmSheet, toast, chipRow, bindChips, hydratePhotos, describeError, $ } from '../ui.js';
 import { openSellSheet, openSoldSheet } from './sell.js';
 import { openMatchSheet } from './match.js';
@@ -23,7 +24,7 @@ export function mount(root, args) {
 
   root.innerHTML = `
     <div class="page record">
-      <a class="back" href="#/library" id="back">${icon('back', 20)} Library</a>
+      <a class="back" href="${rec.wanted ? '#/wanted' : '#/library'}" id="back">${icon('back', 20)} ${rec.wanted ? 'Wanted' : 'Library'}</a>
       <div id="r-gallery"></div>
       <div id="r-head"></div>
       <div id="r-status"></div>
@@ -89,6 +90,33 @@ export function mount(root, args) {
   // ------------------------------------------------------ status
   function drawStatus() {
     const el = $('#r-status', root);
+    if (rec.wanted) {
+      // On the wanted list: no grades, no selling. What it costs, and a way to move it to the library.
+      const price = priceLine(rec);
+      el.innerHTML = `<div class="card wantcard">
+        <p class="meta">On your wanted list</p>
+        ${price ? `<p class="bignum">${esc(price)}</p>` : ''}
+        <div class="stack">
+          <button class="btn primary" id="w-got">I got it</button>
+          ${rec.releaseId ? `<a class="btn" href="https://www.discogs.com/sell/release/${esc(String(rec.releaseId))}" target="_blank" rel="noopener">Find one for sale on Discogs</a>` : ''}
+          <button class="btn ghost danger-text" id="w-remove">Remove from wanted</button>
+        </div></div>`;
+      $('#w-got', el).onclick = async () => {
+        const ok = await confirmSheet({ title: 'Got it?', text: `${rec.artist}, ${rec.title}\n\nIt moves to your library. Set its grade on this page.`, yes: 'Move to my library' });
+        if (!ok) return;
+        await gotIt(rec);
+        toast('In your library');
+        redrawAll();
+      };
+      $('#w-remove', el).onclick = async () => {
+        const ok = await confirmSheet({ title: 'Remove from wanted?', text: `${rec.artist}, ${rec.title}`, yes: 'Remove', danger: true });
+        if (!ok) return;
+        await removeWanted(rec);
+        toast('Removed');
+        location.hash = '#/wanted';
+      };
+      return;
+    }
     el.innerHTML = `<div class="seg three">${Object.entries(M.STATUS).map(([k, l]) => `<button data-st="${k}" class="${rec.status === k ? 'on' : ''}">${l}</button>`).join('')}</div>
       ${rec.status === 'for_sale' ? `<p class="meta center">${rec.askPrice ? 'Asking ' + esc(M.money(rec.askPrice, (rec.market && rec.market.currency) || state.settings.currency)) : ''}${rec.listingStatus ? ' · ' + esc(rec.listingStatus) + ' on Discogs' : rec.askPrice ? ' · not listed on Discogs' : ''}</p>` : ''}
       ${rec.status === 'sold' ? `<p class="meta center">Sold ${esc(M.dateStr(rec.soldAt))}${rec.soldPrice ? ' for ' + esc(M.money(rec.soldPrice, (rec.market && rec.market.currency) || state.settings.currency)) : ''}</p>` : ''}`;
@@ -116,6 +144,8 @@ export function mount(root, args) {
 
   // ------------------------------------------------------ condition
   function drawCond() {
+    $('#r-cond', root).hidden = !!rec.wanted;
+    if (rec.wanted) return;
     const mg = M.GRADES.find((g) => g.code === rec.mediaGrade);
     const sg = M.GRADES.find((g) => g.code === rec.sleeveGrade);
     $('#r-cond', root).innerHTML = `
@@ -137,6 +167,8 @@ export function mount(root, args) {
   // ------------------------------------------------------ value
   function drawValue() {
     const el = $('#r-value', root);
+    el.hidden = !!rec.wanted;
+    if (rec.wanted) return;
     if (rec.source !== 'discogs' || !rec.releaseId) {
       el.innerHTML = `<h3>Value</h3><p class="muted">Match this record to Discogs to see what it is worth.</p>`;
       return;
@@ -265,7 +297,7 @@ export function mount(root, args) {
   function drawActions() {
     const el = $('#r-actions', root);
     el.innerHTML = `<div class="stack">
-      ${rec.status === 'keeping' ? '<button class="btn" id="a-sell">Sell this record</button>' : ''}
+      ${rec.status === 'keeping' && !rec.wanted ? '<button class="btn" id="a-sell">Sell this record</button>' : ''}
       ${rec.source === 'manual' ? '<button class="btn primary" id="a-match">Match on Discogs</button>' : ''}
       ${rec.source === 'discogs' && rec.masterId ? '<button class="btn" id="a-press">Change pressing</button>' : ''}
       <button class="btn ghost danger-text" id="a-delete">Delete record</button>
@@ -287,13 +319,14 @@ export function mount(root, args) {
       try {
         if (rec.listingId && (rec.listingStatus === 'For Sale' || rec.listingStatus === 'Draft')) await deleteListing(rec);
         if (rec.instanceId) await removeFromCollection(rec);
+        if (rec.wanted) await removeWanted(rec);
       } catch (e) {
         toast(`${describeError(e)} Nothing was deleted.`);
         return;
       }
-      await deleteRecord(rec.id);
+      if (state.records.has(rec.id)) await deleteRecord(rec.id);
       toast('Deleted');
-      location.hash = '#/library';
+      location.hash = rec.wanted ? '#/wanted' : '#/library';
     });
   }
 

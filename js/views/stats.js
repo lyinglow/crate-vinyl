@@ -15,7 +15,7 @@ function add(map, key, value) {
 
 // Pure, so it can be tested: records in, groups out. Sold records are left out.
 export function collectionStats(records) {
-  const owned = [...records].filter((r) => r.status !== 'sold');
+  const owned = [...records].filter((r) => r.status !== 'sold' && !r.wanted);
   const decades = new Map();
   const years = new Map();
   const labels = new Map();

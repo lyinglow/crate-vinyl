@@ -615,3 +615,18 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .stage.lite .grain { animation: none; }
 
 .report { white-space: pre-wrap; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg2); border-radius: 12px; padding: 12px; margin-bottom: 12px; user-select: text; -webkit-user-select: text; }
+
+/* wanted list */
+.icon-btn { position: relative; }
+.icon-btn .cnt { position: absolute; top: 4px; right: 3px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--btn); color: var(--btnfg); font-style: normal; font-size: 11px; font-weight: 700; line-height: 17px; text-align: center; }
+.target { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 12px; }
+.target .lbl { font-size: 13px; color: var(--fg2); margin-right: 2px; }
+.wrow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--line); }
+.wrow .wmain { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; color: inherit; text-decoration: none; }
+.wrow .wthumb { flex: none; width: 64px; }
+.wrow .wtext { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wrow .wtext b { font-size: 16px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wrow .wtext span { font-size: 13px; color: var(--fg2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wrow .wtext .wprice { color: var(--fg); font-weight: 600; }
+.wantcard { text-align: center; }
+.wantcard .stack { margin-top: 12px; }

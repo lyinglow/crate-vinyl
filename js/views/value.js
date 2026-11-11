@@ -28,7 +28,7 @@ export function mount(root) {
 
   function draw() {
     const cur = state.settings.currency;
-    const owned = [...state.records.values()].filter((r) => r.status !== 'sold');
+    const owned = [...state.records.values()].filter((r) => r.status !== 'sold' && !r.wanted);
     const priced = owned.filter((r) => M.estimate(r) != null);
     const total = priced.reduce((t, r) => t + M.estimate(r), 0);
     const missing = pendingPrices();
