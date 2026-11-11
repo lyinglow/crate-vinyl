@@ -37,6 +37,18 @@ Could come next:
 - **Buying links for each wanted record.** Today there is one link to the release's for sale page on Discogs. Discogs does not let an app list the individual copies for sale, only the cheapest price and the count.
 - Sync the other way: records added to your Discogs wantlist on discogs.com appear in Crate. Same plan as the collection sync above.
 
+## Find similar tracks: by decade, genre, tempo and feel
+
+Spotify closed its own tempo and mood data to new apps in November 2024, so Crate cannot ask Spotify. A free service called ReccoBeats gives the same kind of numbers (tempo, energy, danceability, mood, acoustic or not) when given a Spotify track, and a browser can call it. Tested on one known track: it returned a tempo of 123 BPM and the rest. Deezer also has a tempo field but it is empty for many tracks.
+
+The plan:
+- Each track Crate has matched on Spotify gets a profile: tempo, energy, mood. Fetched in batches in the background.
+- A "Similar" button on a track lists tracks from your own collection that share its decade (or year), genre or style, a tempo within a few BPM (half and double time count), and a similar feel. Closest first.
+- Make a mix from the list, and send it to Spotify with the button that already exists.
+- A "Mix by feel" page: pick a decade, a genre, a tempo range and a mood, and see what you own.
+
+Limits: only tracks that match on Spotify and that ReccoBeats knows. Obscure dance records will have gaps. The year is the year of your pressing, so a 1995 reissue of a 1980 record counts as 1995. ReccoBeats is a small free service with no promise it will stay.
+
 ## Spotify: what is built, and what could come next
 
 Built: hearted tracks go to a private **Crate loved** playlist, and any mix can be sent to Spotify. See docs/SETUP.md.
