@@ -196,7 +196,13 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 2px var(--fg3); }
 textarea { resize: vertical; min-height: 84px; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .check { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; font-size: 15px; }
-.check input { width: 22px; height: 22px; flex: none; accent-color: var(--btn); }
+/* Tick boxes. The browser's own look is switched off for every input, so these are drawn here. */
+.check { cursor: pointer; }
+.check input { width: 24px; height: 24px; flex: none; padding: 0; border-radius: 7px; background: transparent; box-shadow: inset 0 0 0 2px var(--fg3); position: relative; transition: background 0.15s; cursor: pointer; }
+.check input:checked { background: var(--btn); box-shadow: none; }
+.check input::after { content: ""; position: absolute; left: 8px; top: 3px; width: 6px; height: 12px; border: solid var(--btnfg); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg) scale(0); transition: transform 0.15s; }
+.check input:checked::after { transform: rotate(45deg) scale(1); }
+.check input:focus-visible { box-shadow: 0 0 0 2px var(--fg3); }
 .switch { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; font-size: 15px; border-top: 0.5px solid var(--line); }
 .switch input { width: 51px; height: 31px; flex: none; border-radius: 99px; background: var(--bg3); padding: 0; position: relative; transition: background 0.2s; }
 .card .switch input { background: var(--fg3); }
@@ -638,6 +644,15 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .drow .wtext b { font-size: 16px; font-weight: 650; }
 .drow .wtext span { font-size: 13px; color: var(--fg2); }
 .drow .wtext .wprice { color: var(--fg); font-weight: 600; }
-.drow-btns { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.drow-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.drow-btns .btn { white-space: nowrap; flex: none; }
 .tag { font-size: 13px; color: var(--fg2); }
 #d-sorts { margin-top: 14px; }
+
+#d-view { margin: 16px 0 4px; }
+#d-view em { font-style: normal; color: var(--fg2); }
+
+.drow.heard .wthumb { opacity: 0.5; }
+.drow.heard .wtext b { color: var(--fg2); }
+.heardtag { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; font-size: 12.5px; font-weight: 700; color: var(--good) !important; text-transform: uppercase; letter-spacing: 0.03em; }
+.heardtag svg { width: 14px; height: 14px; }

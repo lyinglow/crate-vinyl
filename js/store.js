@@ -29,6 +29,8 @@ export const DEFAULTS = {
   spotifyAll: true,
   bgStyle: 'soft',
   autoSpin: 2,
+  digPassed: [],
+  digHeard: {},
   spotifyPlaylists: {},
   spotifyQueue: [],
 };
