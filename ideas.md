@@ -49,6 +49,16 @@ The plan:
 
 Limits: only tracks that match on Spotify and that ReccoBeats knows. Obscure dance records will have gaps. The year is the year of your pressing, so a 1995 reissue of a 1980 record counts as 1995. ReccoBeats is a small free service with no promise it will stay.
 
+## Dig: what is built, and what could come next
+
+Built: a Dig page. Pick a decade and a style, and Crate asks Discogs for the vinyl from each year, groups the pressings, leaves out what you own, and ranks the rest by how many Discogs members own it, want it, or want it for each one that owns it. Listen plays the Discogs video. Want it puts it on the wanted list.
+
+Could come next:
+- Add real chart lists for the years Crate cannot rank well. The UK Official Charts keep dance charts from 1994 but offer no open data, so this would be a hand-built list, for example from Wikipedia's year by year number ones.
+- Look deeper than the first 100 pressings of each year, and narrow by country (UK only).
+- Pair it with the similar tracks idea above: dig for records that share a tempo and feel with a track you love.
+- Show which labels and artists keep turning up in the results, so you can dig by label.
+
 ## Spotify: what is built, and what could come next
 
 Built: hearted tracks go to a private **Crate loved** playlist, and any mix can be sent to Spotify. See docs/SETUP.md.

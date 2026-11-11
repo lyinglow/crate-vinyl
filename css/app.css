@@ -630,3 +630,14 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .wrow .wtext .wprice { color: var(--fg); font-weight: 600; }
 .wantcard { text-align: center; }
 .wantcard .stack { margin-top: 12px; }
+
+/* dig */
+.drow { display: flex; gap: 14px; padding: 14px 0; border-bottom: 0.5px solid var(--line); }
+.drow .wthumb { flex: none; width: 72px; }
+.drow .wtext { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.drow .wtext b { font-size: 16px; font-weight: 650; }
+.drow .wtext span { font-size: 13px; color: var(--fg2); }
+.drow .wtext .wprice { color: var(--fg); font-weight: 600; }
+.drow-btns { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.tag { font-size: 13px; color: var(--fg2); }
+#d-sorts { margin-top: 14px; }

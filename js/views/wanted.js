@@ -20,7 +20,7 @@ export function mount(root) {
     <div class="page">
       <a class="back" href="#/library">${icon('back', 20)} Library</a>
       <div class="largetitle"><h1>Wanted</h1><p class="sub" id="w-sub"></p></div>
-      <div class="row-btns"><a class="btn primary" id="w-add" href="#/scan">Add a record I want</a></div>
+      <div class="row-btns"><a class="btn primary" id="w-add" href="#/scan">Add a record I want</a><a class="btn" href="#/dig">Dig for records</a></div>
       <input type="search" id="w-q" class="vfilter" placeholder="Search your wanted list" autocomplete="off" autocapitalize="off">
       <div id="w-list"></div>
     </div>`;

@@ -22,6 +22,7 @@ export function mount(root) {
         <a class="short" href="#/mixes">${icon('list', 20)}<span>Mixes</span><em id="n-mixes"></em></a>
         <a class="short" href="#/loved">${icon('heart', 20)}<span>Loved tracks</span><em id="n-loved"></em></a>
         <a class="short" href="#/wanted">${icon('bookmark', 20)}<span>Wanted</span><em id="n-wanted"></em></a>
+        <a class="short" href="#/dig">${icon('search', 20)}<span>Dig</span><em></em></a>
       </div>
       <div id="lib-banner"></div>
       <div class="toolbar">

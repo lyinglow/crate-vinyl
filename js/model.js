@@ -129,6 +129,7 @@ export function fromSearch(r) {
     barcode: '',
     thumb: r.thumb || '',
     cover: r.cover_image || r.thumb || '',
+    community: r.community ? { have: r.community.have, want: r.community.want } : null,
   };
 }
 

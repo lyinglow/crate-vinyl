@@ -1,6 +1,6 @@
 // Keeps the app itself on the phone so it opens fast and works offline.
 // Your records are not here. They live in the phone's database.
-const VERSION = 'crate-1.22.0';
+const VERSION = 'crate-1.23.0';
 const FILES = [
   './',
   'index.html',
