@@ -160,12 +160,21 @@ function showCode(code) {
 
 // ---------------------------------------------------------------- boot
 
+// The opening screen is in index.html. It fades out once the first screen has been drawn.
+function hideBoot() {
+  const b = document.getElementById('boot');
+  if (!b) return;
+  b.classList.add('gone');
+  setTimeout(() => b.remove(), 450);
+}
+
 async function boot() {
   if (!document.startViewTransition) document.documentElement.classList.add('no-vt');
   buildTabs();
   try {
     await init();
   } catch (e) {
+    hideBoot();
     view.innerHTML = `<div class="page"><div class="empty"><h2>Storage is not available</h2><p>${esc(e.message || 'This browser would not open its storage.')}</p><p class="muted">Try leaving Private Browsing, or open the app from your Home Screen.</p></div></div>`;
     return;
   }
@@ -179,10 +188,12 @@ async function boot() {
   window.addEventListener('online', () => { kick(); spotify.kickLoved(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { kick(); spotify.kickLoved(); } });
   const back = await spotify.handleReturn();
-  if (back.kind === 'copy') { showCode(back.code); return; }
+  if (back.kind === 'copy') { hideBoot(); showCode(back.code); return; }
   if (back.kind === 'done' || back.kind === 'error') location.hash = '#/settings';
   if (!location.hash && !state.settings.token && state.records.size === 0) location.hash = '#/welcome';
   route();
+  // Give the first screen a moment to draw its sleeves before the opening screen goes.
+  requestAnimationFrame(() => requestAnimationFrame(hideBoot));
   if (back.kind === 'done') toast('Spotify connected');
   if (back.kind === 'error') toast(back.message, { ms: 7000 });
   spotify.kickLoved();
