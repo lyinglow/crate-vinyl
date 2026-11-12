@@ -656,3 +656,8 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 .drow.heard .wtext b { color: var(--fg2); }
 .heardtag { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; font-size: 12.5px; font-weight: 700; color: var(--good) !important; text-transform: uppercase; letter-spacing: 0.03em; }
 .heardtag svg { width: 14px; height: 14px; }
+
+/* tempo and feel */
+.tracks .tt .prof { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--fg2); }
+
+@media (max-width: 430px) { .tbtns { gap: 4px; } .tracks .heart, .tracks .add-mix, .tracks .find-mix { width: 28px; height: 28px; } }

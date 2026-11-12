@@ -7,10 +7,13 @@ import { esc, cover, icon, toast, openSheet, hydratePhotos, describeError, $ } f
 import { kick, removeWanted } from '../sync.js';
 
 const DECADES = [1960, 1970, 1980, 1990, 2000, 2010, 2020];
+// The kinds of house music, as Discogs names its styles. Tap one to dig it. Discogs only matches a style by its
+// exact name, so if one is spelled differently there, Crate falls back to searching for the words.
+const HOUSE = ['House', 'Deep House', 'Tech House', 'Progressive House', 'Acid House', 'Garage House', 'Hard House', 'Italo House', 'Tribal House', 'Electro House', 'Euro House', 'Ghetto House', 'Hip House', 'Chicago House', 'Disco House'];
 const SORTS = [['have', 'Most owned'], ['want', 'Most wanted'], ['seek', 'Sought after']];
 
 // Kept while the app is open, so you can leave to listen and come back to the same list.
-const dig = { hideHeard: false, view: 'results', decade: 0, style: '', sort: 'have', vinyl: true, found: new Map(), pages: 0, scanned: 0, busy: false, error: '', shown: 40, ran: false };
+const dig = { loose: false, hideHeard: false, view: 'results', decade: 0, style: '', sort: 'have', vinyl: true, found: new Map(), pages: 0, scanned: 0, busy: false, error: '', shown: 40, ran: false };
 
 // What you own or already want. A pressing counts as owned if its master is.
 function mine() {
@@ -74,6 +77,7 @@ export function mount(root) {
       <a class="back" href="#/wanted">${icon('back', 20)} Wanted</a>
       <div class="largetitle"><h1>Dig</h1><p class="sub">Records you do not own that collectors rate from a decade you choose</p></div>
       <div class="chips" id="d-decades">${DECADES.map((d) => `<button type="button" class="chip${d === dig.decade ? ' on' : ''}" data-d="${d}">${d}s</button>`).join('')}</div>
+      <div class="field"><span>House types</span><div class="chips" id="d-house">${HOUSE.map((h) => `<button type="button" class="chip${h === dig.style ? ' on' : ''}" data-h="${esc(h)}">${esc(h)}</button>`).join('')}</div></div>
       <label class="field"><span>Style</span><input id="d-style" list="d-styles" value="${esc(dig.style)}" placeholder="For example House, Garage, Jungle" autocomplete="off" autocapitalize="words"></label>
       <datalist id="d-styles">${f.styles.map((s) => `<option value="${esc(s)}">`).join('')}</datalist>
       <label class="check"><input type="checkbox" id="d-vinyl"${dig.vinyl ? ' checked' : ''}> Vinyl only</label>
@@ -129,7 +133,9 @@ export function mount(root) {
     const hidden = [...dig.found.values()].filter((e) => owned.has(e.key) || owned.has(`r${e.c.releaseId}`)).length;
     const skipped = [...dig.found.values()].filter((e) => passedKeys.has(e.key)).length;
     $('#d-note', root).textContent = dig.error
-      || (dig.busy ? `Looking through ${dig.decade}s pressings. ${dig.scanned.toLocaleString('en-GB')} so far...`
+      || (dig.ran && !dig.busy && dig.loose && !dig.scanned ? `Nothing found for "${dig.style}". Try House, or a different decade.`
+      : dig.loose && dig.scanned ? `Discogs has no style called "${dig.style}", so Crate searched for those words in Electronic records instead. ${dig.scanned.toLocaleString('en-GB')} pressings looked at.`
+      : dig.busy ? `Looking through ${dig.decade}s pressings. ${dig.scanned.toLocaleString('en-GB')} so far...`
         : dig.ran ? `${dig.scanned.toLocaleString('en-GB')} pressings looked at. ${list.length.toLocaleString('en-GB')} records you do not own${hidden ? `, and ${hidden.toLocaleString('en-GB')} you do` : ''}${skipped ? `. ${skipped.toLocaleString('en-GB')} set aside as not interested` : ''}. Owned and wanted counts are Discogs members, not everyone.` : '');
     if (!list.length) {
       el.innerHTML = dig.ran && !dig.busy ? '<div class="empty small"><p>Nothing found. Try another style, or a different decade.</p></div>' : '';
@@ -141,19 +147,30 @@ export function mount(root) {
 
   async function run() {
     const mine1 = ++token;
-    dig.found = new Map(); dig.scanned = 0; dig.error = ''; dig.busy = true; dig.ran = true; dig.shown = 40;
+    dig.found = new Map(); dig.scanned = 0; dig.error = ''; dig.busy = true; dig.ran = true; dig.shown = 40; dig.loose = false;
     dig.style = $('#d-style', root).value.trim();
     dig.vinyl = $('#d-vinyl', root).checked;
     if (!dig.style) { dig.busy = false; dig.ran = false; toast('Choose a style first.'); return; }
     drawList();
     try {
-      for (let y = dig.decade; y < dig.decade + 10; y++) {
-        if (mine1 !== token) return;
-        const res = await D.search({ type: 'release', style: dig.style, year: String(y), ...(dig.vinyl ? { format: 'Vinyl' } : {}) }, 1, 100);
-        const rows = res.results || [];
-        dig.scanned += rows.length;
-        take(rows);
+      const years = Array.from({ length: 10 }, (_, k) => dig.decade + k);
+      const pass = async (extra) => {
+        for (const y of years) {
+          if (mine1 !== token) return false;
+          const res = await D.search({ type: 'release', year: String(y), ...extra, ...(dig.vinyl ? { format: 'Vinyl' } : {}) }, 1, 100);
+          const rows = res.results || [];
+          dig.scanned += rows.length;
+          take(rows);
+          drawList();
+        }
+        return true;
+      };
+      if (!(await pass({ style: dig.style }))) return;
+      if (!dig.scanned && mine1 === token) {
+        // Discogs has no style by that exact name. Look for the words instead.
+        dig.loose = true;
         drawList();
+        await pass({ q: dig.style, genre: 'Electronic' });
       }
     } catch (e) {
       dig.error = describeError(e);
@@ -190,6 +207,14 @@ export function mount(root) {
   }
 
   root.addEventListener('click', async (e) => {
+    const hs = e.target.closest('[data-h]');
+    if (hs) {
+      $('#d-style', root).value = hs.dataset.h;
+      root.querySelectorAll('#d-house .chip').forEach((c) => c.classList.toggle('on', c === hs));
+      dig.view = 'results';
+      run();
+      return;
+    }
     const d = e.target.closest('[data-d]');
     if (d) { dig.decade = Number(d.dataset.d); root.querySelectorAll('#d-decades .chip').forEach((c) => c.classList.toggle('on', c === d)); return; }
     const sc = e.target.closest('[data-s]');

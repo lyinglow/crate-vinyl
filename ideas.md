@@ -39,6 +39,8 @@ Could come next:
 
 ## Find similar tracks: by decade, genre, tempo and feel
 
+Built (first version): profiles for tracks matched on Spotify (Settings, Tempo and feel, and automatically when you open a record), a Similar button on each track, and Make a mix from the results. Still to do: Mix by feel as its own page, and joining it with Dig.
+
 Spotify closed its own tempo and mood data to new apps in November 2024, so Crate cannot ask Spotify. A free service called ReccoBeats gives the same kind of numbers (tempo, energy, danceability, mood, acoustic or not) when given a Spotify track, and a browser can call it. Tested on one known track: it returned a tempo of 123 BPM and the rest. Deezer also has a tempo field but it is empty for many tracks.
 
 The plan:

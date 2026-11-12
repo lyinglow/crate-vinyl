@@ -1,5 +1,6 @@
 // Settings and the welcome screen: connect Discogs, import, defaults, backup.
 import { spinNow, scrollReport } from './carousel.js';
+import * as FT from '../features.js';
 import { state, saveSettings, wipeAll, subscribe } from '../store.js';
 import * as M from '../model.js';
 import { D } from '../discogs.js';
@@ -160,6 +161,9 @@ export function mount(root) {
           ${window.matchMedia('(prefers-reduced-motion: reduce)').matches ? '<p class="hint-text">Your phone has Reduce Motion on, so Crate will not spin by itself. Turn it off in iPhone Settings, Accessibility, Motion. Turn now still works.</p>' : ''}
         </div>
 
+        <h3 class="sec">Tempo and feel</h3>
+        <div class="card" id="feat-card"></div>
+
         <h3 class="sec">Scroll check</h3>
         <div class="card">
           <p class="muted">If the Library scroll ever looks jumpy: scroll through your records for a few seconds, come back here and tap the button. It shows what your phone did, so the fault can be found.</p>
@@ -226,6 +230,20 @@ export function mount(root) {
       saveSettings({ autoSpin: Number(b.dataset.spin) });
       toast(Number(b.dataset.spin) ? 'Saved.' : 'Turned off.');
     });
+    const drawFeat = () => {
+      const c = FT.counts();
+      const st = FT.status;
+      $('#feat-card', root).innerHTML = `
+        <p class="muted">Tempo and mood for your tracks, so Crate can find tracks that sit close together. It needs each track to be matched on Spotify first. That happens when you add a record, or with <b>Add my whole collection now</b> above.</p>
+        <p><b>${c.have.toLocaleString('en-GB')}</b> tracks have a tempo and feel. <b>${c.waiting.toLocaleString('en-GB')}</b> are waiting.</p>
+        ${st.running ? `<div class="meter"><i style="width:${st.total ? Math.round((st.done / st.total) * 100) : 0}%"></i></div><p class="hint-text">${st.done.toLocaleString('en-GB')} of ${st.total.toLocaleString('en-GB')}. Keep Crate open.</p>` : ''}
+        ${st.error ? `<p class="hint-text">${esc(st.error)}</p>` : ''}
+        <div class="row-btns"><button class="btn small" id="feat-go"${st.running || !c.waiting ? ' disabled' : ''}>Get tempo and feel now</button></div>
+        <p class="hint-text">The numbers come from a free service called ReccoBeats. Some tracks will not be there.</p>`;
+      const go = $('#feat-go', root);
+      if (go) go.onclick = () => FT.fetchProfiles({ onProgress: drawFeat });
+    };
+    drawFeat();
     $('#scroll-report', root).onclick = () => {
       const text = scrollReport();
       const sh = openSheet({ title: 'Scroll report', body: `<pre class="report" id="rep-text">${esc(text)}</pre><div class="row-btns"><button class="btn primary" id="rep-copy">Copy</button></div><p class="hint-text">Copy it and paste it into the chat.</p>` });
