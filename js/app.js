@@ -15,6 +15,7 @@ import * as loved from './views/loved.js';
 import * as stats from './views/stats.js';
 import * as wanted from './views/wanted.js';
 import * as dig from './views/dig.js';
+import * as cloudsync from './cloud.js';
 import * as spotify from './spotify.js';
 
 const views = {
@@ -30,6 +31,13 @@ const views = {
   stats,
   wanted,
   dig,
+  // A one-tap link that sets up sync on another device: #/cloud/<code>
+  cloud: {
+    mount(root, args) {
+      try { cloudsync.applySetupLink(args[0]); toast('Sync is set up on this device. Sign in under Settings.', { ms: 6000 }); } catch (e) { toast('That setup link did not work.'); }
+      location.replace('#/settings');
+    },
+  },
   // A one-tap link that saves your Spotify Client ID on this phone: #/spotifyid/<32 characters>
   spotifyid: {
     mount(root, args) {
@@ -178,6 +186,7 @@ async function boot() {
     view.innerHTML = `<div class="page"><div class="empty"><h2>Storage is not available</h2><p>${esc(e.message || 'This browser would not open its storage.')}</p><p class="muted">Try leaving Private Browsing, or open the app from your Home Screen.</p></div></div>`;
     return;
   }
+  await cloudsync.load();
   subscribe((k) => { if (k === 'sync' || k === 'net' || k === 'spotify') drawBar(); });
   subscribe((k) => {
     if (k !== 'spotify' || spotify.status.busy || !spotify.missed.length) return;
@@ -190,7 +199,8 @@ async function boot() {
   const back = await spotify.handleReturn();
   if (back.kind === 'copy') { hideBoot(); showCode(back.code); return; }
   if (back.kind === 'done' || back.kind === 'error') location.hash = '#/settings';
-  if (!location.hash && !state.settings.token && state.records.size === 0) location.hash = '#/welcome';
+  cloudsync.takeRecoveryFromHash();
+  if (!location.hash && !state.settings.token && state.records.size === 0 && !cloudsync.isConfigured()) location.hash = '#/welcome';
   route();
   // Give the first screen a moment to draw its sleeves before the opening screen goes.
   requestAnimationFrame(() => requestAnimationFrame(hideBoot));
@@ -199,6 +209,7 @@ async function boot() {
   spotify.kickLoved();
   drawBar();
   kick();
+  cloudsync.start();
 
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     const had = !!navigator.serviceWorker.controller;

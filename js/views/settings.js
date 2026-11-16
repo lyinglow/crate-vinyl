@@ -1,6 +1,7 @@
 // Settings and the welcome screen: connect Discogs, import, defaults, backup.
 import { spinNow, scrollReport } from './carousel.js';
 import * as FT from '../features.js';
+import * as CL from '../cloud.js';
 import { state, saveSettings, wipeAll, subscribe } from '../store.js';
 import * as M from '../model.js';
 import { D } from '../discogs.js';
@@ -147,6 +148,9 @@ export function mount(root) {
             <p class="hint-text" id="import-state"></p>` : tokenForm()}
         </div>
 
+        <h3 class="sec">Sync across devices</h3>
+        <div class="card" id="cloud-card"></div>
+
         <h3 class="sec">Cover flow background</h3>
         <div class="card">
           <div class="chips" id="bg-chips">${[['soft', 'Soft gradient'], ['pixel', 'Pixels and grain'], ['off', 'Plain']].map(([k, l]) => `<button type="button" class="chip${(s.bgStyle || 'soft') === k ? ' on' : ''}" data-bg="${k}">${l}</button>`).join('')}</div>
@@ -216,6 +220,7 @@ export function mount(root) {
     bindChips($('#d-media', root), (c) => { if (c) saveSettings({ mediaGrade: c }); });
     bindChips($('#d-sleeve', root), (c) => { if (c) saveSettings({ sleeveGrade: c }); });
     wireSpotify();
+    drawCloud();
     $('#bg-chips', root).addEventListener('click', (e) => {
       const b = e.target.closest('[data-bg]');
       if (!b) return;
@@ -341,6 +346,62 @@ export function mount(root) {
     spotifyState();
   }
 
+  // ---- sync across devices
+  function drawCloud() {
+    const el = $('#cloud-card', root);
+    if (!el) return;
+    const st = CL.status;
+    const host = CL.projectUrl().replace(/^https?:\/\//, '');
+    let html = '';
+    if (!st.configured) {
+      html = `<p class="muted">Keep your whole collection on every phone and computer, and open Crate from anywhere. It uses your own free Supabase project, so you hold the keys.</p>
+        <ol class="steps"><li>Make a free project at <b>supabase.com</b>.</li><li>Tap <b>Copy the setup script</b>, then paste it into Supabase under SQL Editor and run it.</li><li>Paste the project address and the public key below. Both are under Project Settings, API.</li></ol>
+        <div class="row-btns"><button class="btn small" id="cl-sql">Copy the setup script</button></div>
+        <label class="field"><span>Project address</span><input id="cl-url" placeholder="https://abcdefgh.supabase.co" autocomplete="off" autocapitalize="off" inputmode="url"></label>
+        <label class="field"><span>Public key</span><input id="cl-key" placeholder="Starts with eyJ or sb_publishable" autocomplete="off" autocapitalize="off"></label>
+        <div class="row-btns"><button class="btn primary" id="cl-save">Save</button></div>
+        <p class="hint-text">The public key is safe to keep in the app. It does nothing without your password. Full steps are in <a class="link" href="https://github.com/lyinglow/crate-vinyl/blob/main/docs/SYNC.md" target="_blank" rel="noopener">the sync guide</a>.</p>`;
+    } else if (!st.signedIn) {
+      html = `<p class="muted">Project: <b>${esc(host)}</b></p>
+        ${st.recovery ? '' : `<label class="field"><span>Email</span><input id="cl-email" type="email" autocomplete="username" autocapitalize="off" inputmode="email"></label>
+        <label class="field"><span>Password</span><input id="cl-pass" type="password" autocomplete="current-password"></label>
+        <div class="row-btns"><button class="btn primary" id="cl-in">Sign in</button><button class="btn" id="cl-up">Create account</button></div>
+        <div class="row-btns"><button class="link" id="cl-forgot">Forgot password</button><button class="link" id="cl-change">Use a different project</button></div>`}
+        ${st.error ? `<p class="hint-text">${esc(st.error)}</p>` : ''}
+        ${st.info ? `<p class="hint-text">${esc(st.info)}</p>` : ''}`;
+    } else {
+      html = `<p>Signed in as <b>${esc(st.email)}</b></p>
+        ${st.recovery ? `<label class="field"><span>Choose a new password</span><input id="cl-newpass" type="password" autocomplete="new-password"></label><div class="row-btns"><button class="btn primary" id="cl-setpass">Save password</button></div>` : ''}
+        <p class="muted" id="cl-state">${st.busy ? esc(st.stage || 'Syncing...') : st.lastSync ? `Last synced ${esc(M.ago(st.lastSync))}.${st.pending ? ` ${st.pending.toLocaleString('en-GB')} changes waiting.` : ' Everything is up to date.'}` : 'Not synced yet.'}</p>
+        ${st.error ? `<p class="hint-text">${esc(st.error)}</p>` : ''}
+        <div class="row-btns"><button class="btn small" id="cl-now"${st.busy ? ' disabled' : ''}>Sync now</button><button class="btn small" id="cl-link">Link another device</button><button class="btn small" id="cl-out">Sign out</button></div>
+        <p class="hint-text">Your records, grades, mixes, hearts and photos follow you. Your Discogs token and Spotify keys stay on each device. The newest change wins.</p>`;
+    }
+    el.innerHTML = html;
+    const get = (q) => $(q, el);
+    const note = (m) => { CL.status.info = m; CL.status.error = ''; drawCloud(); };
+    const fail = (e) => { CL.status.error = e.message || String(e); CL.status.info = ''; drawCloud(); };
+    if (get('#cl-sql')) get('#cl-sql').onclick = async () => { try { await navigator.clipboard.writeText(CL.SETUP_SQL); toast('Copied. Paste it into the Supabase SQL Editor.'); } catch { toast('Could not copy.'); } };
+    if (get('#cl-save')) get('#cl-save').onclick = () => { try { CL.configure(get('#cl-url').value, get('#cl-key').value); drawCloud(); } catch (e) { toast(e.message); } };
+    if (get('#cl-in')) get('#cl-in').onclick = async () => { try { CL.status.error = ''; await CL.signIn(get('#cl-email').value, get('#cl-pass').value); toast('Signed in'); } catch (e) { fail(e); } };
+    if (get('#cl-up')) get('#cl-up').onclick = async () => {
+      try {
+        if (get('#cl-pass').value.length < 6) { toast('Choose a password of at least 6 characters.'); return; }
+        const r = await CL.signUp(get('#cl-email').value, get('#cl-pass').value);
+        if (r === 'confirm') note('Account made. Supabase sent you an email. Tap the link in it, then sign in here.');
+        else toast('Account made and signed in');
+      } catch (e) { fail(e); }
+    };
+    if (get('#cl-forgot')) get('#cl-forgot').onclick = async () => { try { await CL.recover(get('#cl-email').value); note('If that email has an account, a reset link is on its way.'); } catch (e) { fail(e); } };
+    if (get('#cl-change')) get('#cl-change').onclick = () => { CL.forget(); drawCloud(); };
+    if (get('#cl-now')) get('#cl-now').onclick = () => CL.syncNow();
+    if (get('#cl-out')) get('#cl-out').onclick = async () => { await CL.signOut(); drawCloud(); };
+    if (get('#cl-link')) get('#cl-link').onclick = async () => { try { await navigator.clipboard.writeText(CL.setupLink()); toast('Copied. Open it on your other device, then sign in.'); } catch { toast(CL.setupLink(), { ms: 12000 }); } };
+    if (get('#cl-setpass')) get('#cl-setpass').onclick = async () => { try { await CL.setPassword(get('#cl-newpass').value); toast('Password changed'); drawCloud(); } catch (e) { fail(e); } };
+  }
+
   draw();
-  return subscribe((k) => { if (k === 'spotify') spotifyState(); });
+  const off1 = subscribe((k) => { if (k === 'spotify') spotifyState(); });
+  const off2 = subscribe((k) => { if (k === 'cloud') drawCloud(); });
+  return () => { off1(); off2(); };
 }

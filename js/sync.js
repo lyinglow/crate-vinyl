@@ -35,13 +35,16 @@ function tasksFor(r) {
   if (r.source !== 'discogs' || !r.releaseId) return out;
   if (r.wanted) {
     // A record you want: put it on your Discogs wantlist and get its details. Nothing else.
-    if (s.username && s.addToWantlist !== false && !r.wantSynced && !r.noWant) out.push(['wantAdd', 1]);
+    const mineW = !r.origin || !state.deviceId || r.origin === state.deviceId;
+    if (s.username && s.addToWantlist !== false && mineW && !r.wantSynced && !r.noWant) out.push(['wantAdd', 1]);
     if (r.wantDetail && !r.detail) out.push(['detail', 2]);
     if (needsPrice(r)) out.push(['price', 5]); // the cheapest copy for sale, to show on the wanted list
     return out.filter(([k]) => !failed.has(`${r.id}:${k}`));
   }
   const live = r.status !== 'sold';
-  if (s.addToCollection && s.username && live && !r.instanceId && !r.noCollection) out.push(['collAdd', 1]);
+  // With sync on, only the device that made a record adds it to Discogs. The others wait for it to arrive.
+  const mine = !r.origin || !state.deviceId || r.origin === state.deviceId;
+  if (s.addToCollection && s.username && live && mine && !r.instanceId && !r.noCollection) out.push(['collAdd', 1]);
   if (r.wantDetail && !r.detail) out.push(['detail', 2]);
   if (r.instanceId && r.fieldsDirty && s.username) out.push(['fields', 3]);
   if (needsPrice(r)) out.push(['price', 5]);

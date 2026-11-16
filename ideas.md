@@ -73,9 +73,14 @@ Could come next:
 
 ## The same library on every device
 
-Crate keeps its data on each phone or computer separately. A new device starts empty. Today you move records with Back up everything on one device and Restore on the other. They do not stay in step afterwards.
+Built: sign in with email and your own free Supabase project, and your records, mixes, photos and settings follow you. The newest change wins, deletes travel, and only the device that made a record adds it to Discogs. Setup steps are in docs/SYNC.md.
 
-The idea: an optional account so your records, grades, mixes and hearts follow you everywhere. It would need a small server and a login, which is a real step up in cost and care. The Discogs collection already holds a copy of the record list, so a lighter option is to import from Discogs on each new device.
+Could come next:
+- Keep changes made while signed out, so a delete made offline cannot bring a record back.
+- A small sync light in the corner of the Library.
+- Smaller photos before they upload, to stay well inside the free storage.
+- Encrypt records before they leave the device, so even Supabase cannot read them. That would make a lost password unrecoverable.
+- Sign in with Apple or Google instead of a password.
 
 ## Smaller ideas
 
