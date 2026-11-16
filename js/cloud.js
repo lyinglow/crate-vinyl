@@ -103,14 +103,26 @@ function takeSession(j) {
 }
 
 export async function signUp(email, password) {
-  const j = await authCall('signup', { email: String(email).trim(), password });
+  let j;
+  try {
+    j = await authCall('signup', { email: String(email).trim(), password });
+  } catch (e) {
+    if (/already registered|already been registered/i.test(e.message)) throw new Error('That email already has an account. Tap Sign in with its password. If you cannot remember it, tap Forgot password.');
+    throw e;
+  }
   if (takeSession(j)) { persist(); start(); return 'in'; }
   persist();
   return 'confirm'; // Supabase wants the email confirmed first
 }
 
 export async function signIn(email, password) {
-  const j = await authCall('token?grant_type=password', { email: String(email).trim(), password });
+  let j;
+  try {
+    j = await authCall('token?grant_type=password', { email: String(email).trim(), password });
+  } catch (e) {
+    if (/invalid login credentials/i.test(e.message)) throw new Error('That email and password do not match an account. If this is your first time, tap Create account, not Sign in.');
+    throw e;
+  }
   if (!takeSession(j)) throw new Error('Supabase did not sign you in.');
   persist();
   start();
