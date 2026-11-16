@@ -127,7 +127,7 @@ export function pickPhoto({ camera = false } = {}) {
 // ---------- sheets ----------
 const openSheets = [];
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && openSheets.length) openSheets[openSheets.length - 1].close();
+  if (e.key === 'Escape' && openSheets.length) { e.preventDefault(); openSheets[openSheets.length - 1].close(); }
 });
 
 export function openSheet({ title = '', body = '', className = '', onClose } = {}) {

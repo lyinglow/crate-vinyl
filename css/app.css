@@ -665,3 +665,7 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 /* sync card */
 #cloud-card .field { margin-top: 12px; }
 #cloud-card .steps { margin: 10px 0 12px 20px; line-height: 1.5; color: var(--fg2); font-size: 15px; }
+
+/* dragging the cover flow with a mouse */
+@media (hover: hover) and (pointer: fine) { .flow { cursor: grab; } }
+.flow.dragging { scroll-snap-type: none; cursor: grabbing; }

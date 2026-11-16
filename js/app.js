@@ -194,6 +194,15 @@ async function boot() {
     toast(names.length === 1 ? `Not on Spotify: ${names[0]}` : `${names.length} tracks are not on Spotify`, { ms: 6000 });
   });
   window.addEventListener('hashchange', route);
+  // Escape goes back, the same as the Back link at the top of a page. It leaves typing and open panels alone.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    const t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) { t.blur(); return; }
+    if (document.querySelector('.sheet-wrap.in')) return;
+    const back = view.querySelector('a.back');
+    if (back) back.click();
+  });
   window.addEventListener('online', () => { kick(); spotify.kickLoved(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { kick(); spotify.kickLoved(); } });
   const back = await spotify.handleReturn();

@@ -580,8 +580,9 @@ export function mount(root) {
   flow.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     const fc = e.target.closest('.fc');
-    if (!fc) { g = null; return; }
-    g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), i: Number(fc.parentElement.dataset.i), fc, moved: false, pull: false, dy: 0, last: e.clientY, tl: performance.now(), v: 0 };
+    // A finger scrolls the row on its own. A mouse has to drag it, and may start between the sleeves too.
+    if (!fc && e.pointerType !== 'mouse') { g = null; return; }
+    g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), i: fc ? Number(fc.parentElement.dataset.i) : cur, fc, moved: false, pull: false, dy: 0, last: e.clientY, tl: performance.now(), v: 0, sl0: flow.scrollLeft, drag: false, vx: 0, lx: e.clientX, lt: performance.now() };
   });
 
   flow.addEventListener('pointermove', (e) => {
@@ -589,7 +590,24 @@ export function mount(root) {
     const dx = e.clientX - g.x0;
     const dy = e.clientY - g.y0;
     if (Math.abs(dx) > 8 || Math.abs(dy) > 8) g.moved = true;
-    if (!g.pull && g.i === cur && dy < -12 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+    if (e.pointerType === 'mouse' && !g.pull) {
+      if (!g.drag && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
+        g.drag = true;
+        flow.setPointerCapture(e.pointerId);
+        flow.classList.add('dragging');
+        abortTurn();
+        g.sl0 = flow.scrollLeft + dx; // so the row does not jump when the drag starts
+      }
+      if (g.drag) {
+        flow.scrollLeft = g.sl0 - dx;
+        const t = performance.now();
+        g.vx = (e.clientX - g.lx) / Math.max(1, t - g.lt);
+        g.lx = e.clientX;
+        g.lt = t;
+        return;
+      }
+    }
+    if (!g.pull && g.fc && g.i === cur && dy < -12 && Math.abs(dy) > Math.abs(dx) * 1.2) {
       g.pull = true;
       flow.setPointerCapture(e.pointerId);
       stage.classList.add('pulling');
@@ -613,6 +631,14 @@ export function mount(root) {
     if (!g || e.pointerId !== g.id) return;
     const s = g;
     g = null;
+    if (s.drag) {
+      // Let go: glide on a little in the direction you were dragging, and settle on a sleeve.
+      const pos = flow.scrollLeft / step;
+      scrollToIndex(Math.round(pos - (s.vx * 220) / step));
+      setTimeout(() => flow.classList.remove('dragging'), 500);
+      return;
+    }
+    if (!s.fc) return;
     const box = s.fc.querySelector('.cover');
     if (s.pull) {
       stage.classList.remove('pulling');
@@ -631,6 +657,19 @@ export function mount(root) {
     if (s.i !== cur) scrollToIndex(s.i);
     else turnMiddle();
   }
+  // A mouse wheel moves one sleeve a notch. A trackpad's sideways swipe already scrolls the row itself.
+  let wheelAcc = 0;
+  let wheelAt = 0;
+  flow.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    e.preventDefault();
+    wheelAcc += e.deltaY;
+    const t = performance.now();
+    if (Math.abs(wheelAcc) < 50 || t - wheelAt < 140) return;
+    scrollToIndex(cur + (wheelAcc > 0 ? 1 : -1));
+    wheelAcc = 0;
+    wheelAt = t;
+  }, { passive: false });
   flow.addEventListener('pointerup', (e) => letGo(e, false));
   flow.addEventListener('pointercancel', (e) => letGo(e, true));
 
