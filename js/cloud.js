@@ -207,6 +207,7 @@ function attach() {
   hooks.recordDelete = (id) => { if (!on()) return; delete cloud.dirty[`record:${id}`]; cloud.tomb[`record:${id}`] = now(); schedule(); persist(); };
   hooks.photo = (id) => { if (!on()) return; cloud.photoDirty[id] = 1; delete cloud.photoDel[id]; schedule(); persist(); };
   hooks.photoDelete = (id) => { if (!on()) return; delete cloud.photoDirty[id]; cloud.photoDel[id] = 1; schedule(); persist(); };
+  hooks.equipment = () => { if (!on()) return; cloud.docTs['equipment:all'] = now(); mark('equipment:all', cloud.docTs['equipment:all']); persist(); };
   hooks.mixes = () => { if (!on()) return; cloud.docTs['mixes:all'] = now(); mark('mixes:all', cloud.docTs['mixes:all']); persist(); };
   hooks.prefs = (keys) => { if (!on() || !keys.some((k) => PREF_KEYS.includes(k))) return; cloud.docTs['prefs:all'] = now(); mark('prefs:all', cloud.docTs['prefs:all']); persist(); };
   hooks.photoMissing = async (id) => {
@@ -238,6 +239,7 @@ async function pull() {
     const put = [];
     const gone = [];
     let mixes = null;
+    let gear = null;
     let prefs = null;
     for (const row of rows) {
       const key = `${row.kind}:${row.id}`;
@@ -274,6 +276,16 @@ async function pull() {
           cloud.dirty[key] = now(); cloud.docTs[key] = now();
         } else if (ts > mine) { mixes = row.data.mixes || []; cloud.docTs[key] = ts; delete cloud.dirty[key]; }
         else if (ts < mine) cloud.dirty[key] = mine;
+      } else if (row.kind === 'equipment' && row.data) {
+        const ts = row.data.ts || at;
+        const mine = cloud.docTs[key] || 0;
+        if (first && state.equipment.length) {
+          const by = new Map((row.data.items || []).map((g) => [g.id, g]));
+          for (const g of state.equipment) if (!by.has(g.id) || (g.updated || 0) > (by.get(g.id).updated || 0)) by.set(g.id, g);
+          gear = [...by.values()];
+          cloud.dirty[key] = now(); cloud.docTs[key] = now();
+        } else if (ts > mine) { gear = row.data.items || []; cloud.docTs[key] = ts; delete cloud.dirty[key]; }
+        else if (ts < mine) cloud.dirty[key] = mine;
       } else if (row.kind === 'prefs' && row.data) {
         const ts = row.data.ts || at;
         const mine = cloud.docTs[key] || 0;
@@ -281,7 +293,7 @@ async function pull() {
         else if (ts < mine) cloud.dirty[key] = mine;
       }
     }
-    if (put.length || gone.length || mixes || prefs) await applyRemote({ records: put, removed: gone, mixes, prefs });
+    if (put.length || gone.length || mixes || gear || prefs) await applyRemote({ records: put, removed: gone, mixes, equipment: gear, prefs });
     const last = rows.length ? rows[rows.length - 1].updated_at : cursor;
     const moved = last !== cursor;
     cursor = last || cursor;
@@ -305,7 +317,8 @@ async function push() {
       const rec = state.records.get(id);
       if (rec) docs.push({ key, ts, row: { user_id: uid, kind, id, data: rec, deleted: false } });
       else delete cloud.dirty[key];
-    } else if (kind === 'mixes') docs.push({ key, ts, row: { user_id: uid, kind, id, data: { ts: cloud.docTs[key] || ts, mixes: state.mixes }, deleted: false } });
+    } else if (kind === 'equipment') docs.push({ key, ts, row: { user_id: uid, kind, id, data: { ts: cloud.docTs[key] || ts, items: state.equipment }, deleted: false } });
+    else if (kind === 'mixes') docs.push({ key, ts, row: { user_id: uid, kind, id, data: { ts: cloud.docTs[key] || ts, mixes: state.mixes }, deleted: false } });
     else if (kind === 'prefs') docs.push({ key, ts, row: { user_id: uid, kind, id, data: { ts: cloud.docTs[key] || ts, prefs: prefsNow() }, deleted: false } });
   }
   for (const key of Object.keys(cloud.tomb)) {
@@ -361,6 +374,8 @@ export function syncNow() {
         // First time on this device: everything here is offered to the cloud, and the cloud's newer versions win.
         for (const id of state.records.keys()) cloud.dirty[`record:${id}`] = cloud.dirty[`record:${id}`] || state.records.get(id).updated || now();
         if (state.mixes.length) cloud.dirty['mixes:all'] = cloud.dirty['mixes:all'] || now();
+        if (state.equipment.length) cloud.dirty['equipment:all'] = cloud.dirty['equipment:all'] || now();
+        for (const g of state.equipment) if (g.photo) cloud.photoDirty[g.photo] = 1;
         if (!cloud.docTs['prefs:all']) cloud.dirty['prefs:all'] = now(); // if the cloud has settings already, those win
         for (const k of ['photoSleeve', 'photoLabel']) for (const r of state.records.values()) if (r[k]) cloud.photoDirty[r[k]] = 1;
       }

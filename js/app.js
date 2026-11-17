@@ -15,6 +15,7 @@ import * as loved from './views/loved.js';
 import * as stats from './views/stats.js';
 import * as wanted from './views/wanted.js';
 import * as dig from './views/dig.js';
+import * as equipment from './views/equipment.js';
 import * as cloudsync from './cloud.js';
 import * as spotify from './spotify.js';
 
@@ -31,6 +32,7 @@ const views = {
   stats,
   wanted,
   dig,
+  equipment,
   // A one-tap link that sets up sync on another device: #/cloud/<code>
   cloud: {
     mount(root, args) {
@@ -52,7 +54,7 @@ const views = {
   },
   welcome: { mount: settings.mountWelcome },
 };
-const tabOf = { record: 'library', browse: 'library', mixes: 'library', loved: 'library', stats: 'value', wanted: 'library', dig: 'library', welcome: 'settings' };
+const tabOf = { record: 'library', browse: 'library', mixes: 'library', loved: 'library', stats: 'value', wanted: 'library', dig: 'library', equipment: 'library', welcome: 'settings' };
 
 const view = document.getElementById('view');
 const tabs = document.getElementById('tabs');

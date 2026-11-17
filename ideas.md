@@ -84,6 +84,8 @@ Could come next:
 
 ## Smaller ideas
 
+- Equipment: a maintenance log for every item (cleaned, belt changed, serviced), and a reminder to clean the stylus.
+- Equipment: which deck and cartridge you played a record on, so each record keeps its own play history.
 - Voice notes on a record: hold a button, say it, and it saves with the record. Works on iPhone and stays on the phone.
 - Change a listing's price from inside the app. Today you edit it on Discogs.
 - Pull in real sale prices from your Discogs orders, instead of using the asking price.

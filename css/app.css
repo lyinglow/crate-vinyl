@@ -669,3 +669,21 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 /* dragging the cover flow with a mouse */
 @media (hover: hover) and (pointer: fine) { .flow { cursor: grab; } }
 .flow.dragging { scroll-snap-type: none; cursor: grabbing; }
+
+/* equipment */
+.grow { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 0; border: 0; border-bottom: 0.5px solid var(--line); background: transparent; color: var(--fg); text-align: left; font: inherit; }
+.grow .gthumb { flex: none; width: 56px; height: 56px; border-radius: 10px; background: var(--bg2); display: grid; place-items: center; overflow: hidden; color: var(--fg2); }
+.grow .gthumb img { width: 100%; height: 100%; object-fit: cover; }
+.grow .gtext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.grow .gtext b { font-size: 16px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grow .gtext span { font-size: 13px; color: var(--fg2); }
+.grow svg:last-child { color: var(--fg3); flex: none; }
+.gwear.warn { color: #b26a00 !important; font-weight: 600; }
+.gwear.bad { color: var(--bad) !important; font-weight: 600; }
+.wear .meter { margin: 8px 0; }
+.wear.warn .meter i { background: #e0a100; }
+.wear.bad .meter i { background: var(--bad); }
+.wear p { font-size: 14px; }
+.gearlog { margin: 10px 0 12px 18px; font-size: 13px; color: var(--fg2); line-height: 1.6; }
+.sheet.gear .photo-btn { width: 100%; height: 120px; }
+.sheet.gear .photo-btn.has img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }

@@ -1,5 +1,5 @@
 // Getting your data out: CSV for spreadsheets, JSON backup for restoring.
-import { state, allPhotos, putPhoto, saveRecords, saveSettings, saveMixes } from './store.js';
+import { state, allPhotos, putPhoto, saveRecords, saveSettings, saveMixes, saveEquipment } from './store.js';
 import * as M from './model.js';
 
 const COLUMNS = [
@@ -85,7 +85,7 @@ export async function backupJson() {
   const photos = {};
   for (const p of await allPhotos()) photos[p.id] = await toDataUrl(p.blob);
   const { token, spotify, spotifyQueue, ...settings } = state.settings; // sign in details are never written to a backup
-  const data = { app: 'crate', version: 1, exportedAt: new Date().toISOString(), settings, records: [...state.records.values()], mixes: state.mixes, photos };
+  const data = { app: 'crate', version: 1, exportedAt: new Date().toISOString(), settings, records: [...state.records.values()], mixes: state.mixes, equipment: state.equipment, photos };
   return new Blob([JSON.stringify(data)], { type: 'application/json' });
 }
 
@@ -109,6 +109,12 @@ export async function restoreBackup(file) {
     for (const m of data.mixes) byId.set(m.id, m);
     state.mixes = [...byId.values()].sort((a, b) => (b.updated || 0) - (a.updated || 0));
     await saveMixes();
+  }
+  if (Array.isArray(data.equipment)) {
+    const byId = new Map(state.equipment.map((g) => [g.id, g]));
+    for (const g of data.equipment) byId.set(g.id, g);
+    state.equipment = [...byId.values()];
+    await saveEquipment();
   }
   return data.records.length;
 }

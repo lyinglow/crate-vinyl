@@ -23,6 +23,7 @@ export function mount(root) {
         <a class="short" href="#/loved">${icon('heart', 20)}<span>Loved tracks</span><em id="n-loved"></em></a>
         <a class="short" href="#/wanted">${icon('bookmark', 20)}<span>Wanted</span><em id="n-wanted"></em></a>
         <a class="short" href="#/dig">${icon('search', 20)}<span>Dig</span><em></em></a>
+        <a class="short" href="#/equipment">${icon('deck', 20)}<span>Equipment</span><em id="n-gear"></em></a>
       </div>
       <div id="lib-banner"></div>
       <div class="toolbar">
@@ -85,6 +86,7 @@ export function mount(root) {
     $('#lib-count', root).textContent = n === 0 ? '' : list.length === n ? `${n.toLocaleString('en-GB')} record${n === 1 ? '' : 's'}` : `${list.length.toLocaleString('en-GB')} of ${n.toLocaleString('en-GB')}`;
     $('#n-mixes', root).textContent = state.mixes.length || '';
     $('#n-loved', root).textContent = lovedCount() || '';
+    $('#n-gear', root).textContent = state.equipment.length || '';
     $('#n-wanted', root).textContent = [...state.records.values()].filter((r) => r.wanted).length || '';
     $('#btn-view', root).innerHTML = icon(state.settings.view === 'list' ? 'grid' : 'list', 22);
     $('#filter-dot', root).hidden = !filtersOn() && v.sort === 'added';
