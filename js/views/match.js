@@ -70,6 +70,7 @@ export function openMatchSheet({ cands, start = 0, barcode = '', labelBlob = nul
         <span class="lbl">Record</span>${chipRow(CODES, grades.media, { attr: 'id="g-media"' })}
         <span class="lbl">Sleeve</span>${chipRow(CODES, grades.sleeve, { attr: 'id="g-sleeve"' })}
       </div>`}
+      ${plain ? '' : '<label class="field" id="m-paidf"><span>Price paid (optional)</span><input id="m-paid" inputmode="decimal" placeholder="0.00" autocomplete="off"></label>'}
       <button class="btn primary big" id="m-add"></button>
       <div class="m-links">
         <button class="link" id="m-others" hidden></button>
@@ -118,10 +119,17 @@ export function openMatchSheet({ cands, start = 0, barcode = '', labelBlob = nul
   }
   fill();
   if (!plain) {
-    const showGrades = () => { const g = $('.m-grades'); if (g) g.hidden = target.wanted; };
+    const showGrades = () => { const g = $('.m-grades'); if (g) g.hidden = target.wanted; const pf = $('#m-paidf'); if (pf) pf.hidden = target.wanted; };
     showGrades();
     bindTarget($('#m-target'), () => { showGrades(); fill(); });
   }
+
+  const paidNow = () => {
+    const f = $('#m-paid');
+    const v = f ? f.value.replace(/[^0-9.]/g, '') : '';
+    return v === '' ? null : Number(v);
+  };
+  const today = () => new Date().toISOString().slice(0, 10);
 
   // ---- add ----
   $('#m-add').onclick = async () => {
@@ -160,6 +168,8 @@ export function openMatchSheet({ cands, start = 0, barcode = '', labelBlob = nul
         const rec = [...state.records.values()].find((r) => r.wanted && r.releaseId && r.releaseId === c.releaseId);
         rec.mediaGrade = grades.media;
         rec.sleeveGrade = grades.sleeve;
+        const pw = paidNow();
+        if (pw != null) { rec.paid = pw; rec.paidOn = today(); }
         await gotIt(rec);
         s.close();
         if (onAdded) onAdded(rec);
@@ -170,6 +180,8 @@ export function openMatchSheet({ cands, start = 0, barcode = '', labelBlob = nul
           sleeveGrade: grades.sleeve,
           barcode: barcode || c.barcode || '',
           wantDetail: true,
+          paid: paidNow(),
+          paidOn: paidNow() != null ? today() : '',
         });
         if (labelBlob) {
           rec.photoLabel = `${rec.id}-label`;

@@ -90,6 +90,8 @@ export function newRecord(shell, extra = {}) {
   return {
     status: 'keeping',
     wanted: false,
+    paid: null,
+    paidOn: '',
     mediaGrade: '',
     sleeveGrade: '',
     notes: '',
@@ -286,6 +288,24 @@ export function estimate(rec) {
   if (typeof m.lowest === 'number' && isFinite(m.lowest)) return m.lowest;
   return null;
 }
+
+// What a record has done since you bought it. Needs a price paid and a current estimate.
+export function gain(rec) {
+  const paid = Number(rec.paid);
+  const now = estimate(rec);
+  if (!(rec.paid != null && rec.paid !== '' && isFinite(paid)) || now == null) return null;
+  return { paid, now, amount: now - paid, pct: paid > 0 ? (now - paid) / paid : null };
+}
+
+// What a sold record made: what it sold for, less what you paid. Discogs fees are not counted.
+export function profit(rec) {
+  if (rec.status !== 'sold' || rec.soldPrice == null || rec.paid == null || rec.paid === '') return null;
+  const paid = Number(rec.paid);
+  return isFinite(paid) ? { paid, sold: rec.soldPrice, amount: rec.soldPrice - paid, pct: paid > 0 ? (rec.soldPrice - paid) / paid : null } : null;
+}
+
+export const signed = (n, cur, d) => `${n >= 0 ? '+' : '-'}${money(Math.abs(n), cur, d)}`;
+export const pctText = (p) => (p == null ? '' : `${p >= 0 ? '+' : '-'}${Math.abs(Math.round(p * 100))}%`);
 
 export function money(n, cur = 'GBP', digits) {
   if (n == null || !isFinite(n)) return '';

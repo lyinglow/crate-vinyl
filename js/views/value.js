@@ -5,17 +5,24 @@ import { D } from '../discogs.js';
 import { kick, pendingPrices, status as syncStatus } from '../sync.js';
 import { esc, cover, icon, toast, hydratePhotos, describeError, $ } from '../ui.js';
 import { openSellSheet } from './sell.js';
+import { takeSnapshot, series } from '../history.js';
 
 let topShown = 10;
 let showHidden = false;
+let chartDays = 90;
 
 export function mount(root) {
   root.innerHTML = `
     <div class="page">
       <div class="largetitle"><h1>Value</h1><p class="sub" id="v-sub"></p></div>
       <section class="card hero" id="v-total"></section>
+      <section class="card" id="v-pl"></section>
+      <section class="card" id="v-chart"></section>
       <a class="card flat linkcard" href="#/stats"><span><b>Collection stats</b><br><span class="muted">By decade, year, label and value</span></span>${icon('chevron', 18)}</a>
       <section id="v-discogs"></section>
+      <h3 class="sec">Movers</h3>
+      <p class="muted">Records whose price moved most in the last 30 days.</p>
+      <div id="v-movers"></div>
       <h3 class="sec">Most valuable</h3>
       <div id="v-top"></div>
       <h3 class="sec">Worth selling</h3>
@@ -68,8 +75,6 @@ export function mount(root) {
       draw();
     };
 
-    // ---- top records
-    const top = priced.slice().sort((a, b) => M.estimate(b) - M.estimate(a));
     const rowHtml = (r, extra = '') => {
       const c = (r.market && r.market.currency) || cur;
       return `<div class="lrow" data-go="${r.id}">
@@ -77,6 +82,58 @@ export function mount(root) {
         <div class="ltext"><b>${esc(r.artist)}</b><span>${esc(r.title)}</span><small>${esc([r.year, r.mediaGrade, wanted(r)].filter(Boolean).join(' · '))}</small></div>
         <div class="lright"><b>${esc(money(M.estimate(r), c))}</b>${extra}</div></div>`;
     };
+    // ---- profit and loss
+    const hasPaid = (r) => r.paid != null && r.paid !== '' && isFinite(Number(r.paid));
+    const paidRecs = owned.filter(hasPaid);
+    const both = paidRecs.filter((r) => M.estimate(r) != null);
+    const paidSum = both.reduce((t, r) => t + Number(r.paid), 0);
+    const nowSum = both.reduce((t, r) => t + M.estimate(r), 0);
+    const gainAmt = nowSum - paidSum;
+    const sold = [...state.records.values()].filter((r) => !r.wanted && M.profit(r));
+    const realised = sold.reduce((t, r) => t + M.profit(r).amount, 0);
+    const spent = paidRecs.reduce((t, r) => t + Number(r.paid), 0);
+    $('#v-pl', root).innerHTML = `<p class="meta">Profit and loss</p>
+      ${both.length ? `<div class="stats three"><div><span>Paid</span><b>${esc(money(paidSum, cur, 0))}</b></div><div><span>Worth now</span><b>${esc(money(nowSum, cur, 0))}</b></div><div><span>${gainAmt >= 0 ? 'Gain' : 'Loss'}</span><b class="${gainAmt >= 0 ? 'upc' : 'downc'}">${esc(M.signed(gainAmt, cur, 0))}${paidSum > 0 ? ` (${esc(M.pctText(gainAmt / paidSum))})` : ''}</b></div></div>` : '<p class="muted">Add what you paid for your records and Crate shows what you have gained or lost.</p>'}
+      ${sold.length ? `<p class="muted">Records you sold: <b class="${realised >= 0 ? 'upc' : 'downc'}">${esc(M.signed(realised, cur, 0))}</b> across ${sold.length}. Discogs fees are not counted.</p>` : ''}
+      <p class="muted">${paidRecs.length.toLocaleString('en-GB')} of ${owned.length.toLocaleString('en-GB')} records have a price paid${spent ? `, ${esc(money(spent, cur, 0))} in all` : ''}. ${owned.length > paidRecs.length ? '<a class="link" href="#/paid">Fill in what you paid</a>' : ''}</p>`;
+
+    // ---- over time
+    takeSnapshot();
+    const pts = series(chartDays);
+    const rangeChips = [[30, '30 days'], [90, '3 months'], [365, 'A year']].map(([d, l]) => `<button type="button" class="chip${d === chartDays ? ' on' : ''}" data-days="${d}">${l}</button>`).join('');
+    if (pts.length < 2) {
+      $('#v-chart', root).innerHTML = `<p class="meta">Over time</p><p class="muted">A line appears here once Crate has seen your collection's value on two different days. Open the app now and then and it fills in by itself.</p>`;
+    } else {
+      const W = 300; const H = 96; const pad = 6;
+      const vals = pts.map((p) => p.worth);
+      const lo = Math.min(...vals); const hi = Math.max(...vals);
+      const span = hi - lo || 1;
+      const t0 = Date.parse(pts[0].d); const t1 = Date.parse(pts[pts.length - 1].d) || t0 + 1;
+      const x = (p) => pad + ((Date.parse(p.d) - t0) / Math.max(1, t1 - t0)) * (W - pad * 2);
+      const y = (v) => H - pad - ((v - lo) / span) * (H - pad * 2);
+      const line = pts.map((p) => `${x(p).toFixed(1)},${y(p.worth).toFixed(1)}`).join(' ');
+      const first = pts[0]; const last = pts[pts.length - 1];
+      const ch = last.worth - first.worth;
+      $('#v-chart', root).innerHTML = `<p class="meta">Over time</p>
+        <p class="bignum">${esc(money(last.worth, cur, 0))}</p>
+        <p class="gainline ${ch >= 0 ? 'up' : 'down'}"><b>${esc(M.signed(ch, cur, 0))}</b>${first.worth > 0 ? ` (${esc(M.pctText(ch / first.worth))})` : ''} since ${esc(M.dateStr(Date.parse(first.d)))}</p>
+        <svg class="vchart ${ch >= 0 ? 'up' : 'down'}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Collection value over time"><polyline points="${pad},${H - pad} ${line} ${W - pad},${H - pad}" class="area"/><polyline points="${line}" class="ln"/></svg>
+        <div class="chips">${rangeChips}</div>`;
+    }
+    if (pts.length < 2) $('#v-chart', root).insertAdjacentHTML('beforeend', `<div class="chips">${rangeChips}</div>`);
+
+    // ---- movers
+    const month = Date.now() - 30 * 864e5;
+    const moved = owned.filter((r) => r.move && r.move.at >= month && r.move.to !== r.move.from).map((r) => ({ r, d: r.move.to - r.move.from }));
+    const ups = moved.filter((m) => m.d > 0).sort((a, b) => b.d - a.d).slice(0, 5);
+    const downs = moved.filter((m) => m.d < 0).sort((a, b) => a.d - b.d).slice(0, 5);
+    const mv = (m) => rowHtml(m.r, `<small class="${m.d > 0 ? 'upc' : 'downc'}">${esc(M.signed(m.d, (m.r.market && m.r.market.currency) || cur))}</small>`);
+    $('#v-movers', root).innerHTML = moved.length
+      ? `${ups.length ? `<p class="meta">Up</p><div class="rows">${ups.map(mv).join('')}</div>` : ''}${downs.length ? `<p class="meta">Down</p><div class="rows">${downs.map(mv).join('')}</div>` : ''}`
+      : '<p class="muted">Nothing has moved yet. Prices are checked again every few days, and the biggest changes show here.</p>';
+
+    // ---- top records
+    const top = priced.slice().sort((a, b) => M.estimate(b) - M.estimate(a));
     $('#v-top', root).innerHTML = top.length
       ? `<div class="rows">${top.slice(0, topShown).map((r) => rowHtml(r)).join('')}</div>${top.length > topShown ? '<button class="btn small" id="more-top">Show more</button>' : ''}`
       : '<p class="muted">No prices yet.</p>';
@@ -108,6 +165,8 @@ export function mount(root) {
   draw();
 
   root.addEventListener('click', async (e) => {
+    const days = e.target.closest('[data-days]');
+    if (days) { chartDays = Number(days.dataset.days); draw(); return; }
     const min = e.target.closest('[data-min]');
     if (min) { await saveSettings({ worthMin: Number(min.dataset.min) }); draw(); return; }
     const keep = e.target.closest('[data-keep]');

@@ -361,6 +361,7 @@ function mountManual(root) {
           <div class="field"><span>Record</span>${chipRow(M.GRADES.map((g) => g.code), grades.media || state.settings.mediaGrade, { attr: 'id="g-media"' })}</div>
           <div class="field"><span>Sleeve</span>${chipRow(M.GRADES.map((g) => g.code), grades.sleeve || state.settings.sleeveGrade, { attr: 'id="g-sleeve"' })}</div>
         </div>
+        <label class="field" id="m-paidf"><span>Price paid (optional)</span><input name="paid" inputmode="decimal" placeholder="0.00" autocomplete="off"></label>
         <label class="field"><span>Notes</span><textarea name="notes" rows="2" placeholder="Anything useful: test pressing, signed, where you got it"></textarea></label>
         <div class="two photos">
           <button type="button" class="photo-btn" id="p-sleeve"><span>${icon('camera', 22)}</span>Sleeve photo</button>
@@ -378,6 +379,7 @@ function mountManual(root) {
   bindChips(root.querySelector('#g-sleeve'), (c) => { if (c) sg = c; });
   const showTarget = () => {
     root.querySelector('#m-gr').hidden = target.wanted;
+    root.querySelector('#m-paidf').hidden = target.wanted;
     root.querySelector('#m-save').textContent = target.wanted ? 'Add to wanted list' : 'Save record';
   };
   showTarget();
@@ -415,7 +417,7 @@ function mountManual(root) {
       styles: [],
       thumb: '',
       cover: '',
-    }, { wanted: target.wanted, mediaGrade: target.wanted ? '' : mg, sleeveGrade: target.wanted ? '' : sg, notes: g('notes') });
+    }, { paid: (() => { const v = g('paid').replace(/[^0-9.]/g, ''); return v === '' || target.wanted ? null : Number(v); })(), paidOn: g('paid') && !target.wanted ? new Date().toISOString().slice(0, 10) : '', wanted: target.wanted, mediaGrade: target.wanted ? '' : mg, sleeveGrade: target.wanted ? '' : sg, notes: g('notes') });
     if (sleeve) { rec.photoSleeve = `${rec.id}-sleeve`; await putPhoto(rec.photoSleeve, sleeve); }
     if (label) { rec.photoLabel = `${rec.id}-label`; await putPhoto(rec.photoLabel, label); }
     await saveRecord(rec);

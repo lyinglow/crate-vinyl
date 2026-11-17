@@ -1,5 +1,5 @@
 // Getting your data out: CSV for spreadsheets, JSON backup for restoring.
-import { state, allPhotos, putPhoto, saveRecords, saveSettings, saveMixes, saveEquipment } from './store.js';
+import { state, allPhotos, putPhoto, saveRecords, saveSettings, saveMixes, saveEquipment, saveHistory } from './store.js';
 import * as M from './model.js';
 
 const COLUMNS = [
@@ -22,6 +22,10 @@ const COLUMNS = [
   ['Sold price', (r) => r.soldPrice],
   ['Sold date', (r) => (r.soldAt ? new Date(r.soldAt).toISOString().slice(0, 10) : '')],
   ['Estimated value', (r) => { const v = M.estimate(r); return v == null ? '' : v.toFixed(2); }],
+  ['Price paid', (r) => (r.paid == null ? '' : r.paid)],
+  ['Date bought', (r) => r.paidOn || ''],
+  ['Gain or loss', (r) => { const g = M.gain(r); return g ? g.amount.toFixed(2) : ''; }],
+  ['Profit when sold', (r) => { const p = M.profit(r); return p ? p.amount.toFixed(2) : ''; }],
   ['Lowest for sale now', (r) => (r.market && r.market.lowest != null ? r.market.lowest : '')],
   ['Currency', (r) => (r.market && r.market.currency) || state.settings.currency],
   ['Loved tracks', (r) => (r.loved || []).map((k) => k.split('|').slice(1).join('|')).join('; ')],
@@ -85,7 +89,7 @@ export async function backupJson() {
   const photos = {};
   for (const p of await allPhotos()) photos[p.id] = await toDataUrl(p.blob);
   const { token, spotify, spotifyQueue, ...settings } = state.settings; // sign in details are never written to a backup
-  const data = { app: 'crate', version: 1, exportedAt: new Date().toISOString(), settings, records: [...state.records.values()], mixes: state.mixes, equipment: state.equipment, photos };
+  const data = { app: 'crate', version: 1, exportedAt: new Date().toISOString(), settings, records: [...state.records.values()], mixes: state.mixes, equipment: state.equipment, history: state.history, photos };
   return new Blob([JSON.stringify(data)], { type: 'application/json' });
 }
 
@@ -115,6 +119,12 @@ export async function restoreBackup(file) {
     for (const g of data.equipment) byId.set(g.id, g);
     state.equipment = [...byId.values()];
     await saveEquipment();
+  }
+  if (Array.isArray(data.history)) {
+    const by = new Map(state.history.map((x) => [x.d, x]));
+    for (const x of data.history) if (!by.has(x.d) || (x.priced || 0) > (by.get(x.d).priced || 0)) by.set(x.d, x);
+    state.history = [...by.values()].sort((a, b) => (a.d < b.d ? -1 : 1));
+    await saveHistory();
   }
   return data.records.length;
 }

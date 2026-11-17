@@ -184,6 +184,7 @@ async function pushFields(rec) {
 
 export async function fetchMarket(rec, priority = 5, withStats = false) {
   const s = state.settings;
+  const before = M.estimate(rec);
   const m = rec.market || (rec.market = {});
   let sug = null;
   if (!s.sellerBlocked) {
@@ -216,6 +217,9 @@ export async function fetchMarket(rec, priority = 5, withStats = false) {
     }
   }
   m.updated = Date.now();
+  // Remember a real move in the estimate, for the movers list.
+  const after = M.estimate(rec);
+  if (before != null && after != null && Math.abs(after - before) >= 0.01) rec.move = { from: before, to: after, at: Date.now() };
   return rec;
 }
 

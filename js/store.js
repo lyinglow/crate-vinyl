@@ -41,11 +41,12 @@ export const state = {
   persisted: false,
   mixes: [],
   equipment: [],
+  history: [],
   deviceId: '',
 };
 
 // Sync listens here. Each hook is set by cloud.js when sync is on, and is empty otherwise.
-export const hooks = { record: null, recordDelete: null, photo: null, photoDelete: null, mixes: null, equipment: null, prefs: null, photoMissing: null };
+export const hooks = { record: null, recordDelete: null, photo: null, photoDelete: null, mixes: null, equipment: null, history: null, prefs: null, photoMissing: null };
 
 let db = null;
 const subs = new Set();
@@ -113,6 +114,8 @@ export async function init() {
   state.mixes = (mx && mx.value) || [];
   const eq = await req(os('meta').get('equipment'));
   state.equipment = (eq && eq.value) || [];
+  const hi = await req(os('meta').get('history'));
+  state.history = (hi && hi.value) || [];
   try {
     if (navigator.storage && navigator.storage.persisted) {
       state.persisted = await navigator.storage.persisted();
@@ -179,9 +182,15 @@ export async function saveEquipment() {
   emit('equipment');
 }
 
+export async function saveHistory() {
+  await req(os('meta', 'readwrite').put({ key: 'history', value: state.history }));
+  if (hooks.history) hooks.history();
+  emit('history');
+}
+
 // Changes that arrive from the cloud. They are written down without being marked as new local changes,
 // so they are not sent straight back.
-export async function applyRemote({ records = [], removed = [], mixes = null, equipment = null, prefs = null } = {}) {
+export async function applyRemote({ records = [], removed = [], mixes = null, equipment = null, history = null, prefs = null } = {}) {
   if (records.length) {
     records.forEach((r) => state.records.set(r.id, r));
     await putMany('records', records);
@@ -196,6 +205,11 @@ export async function applyRemote({ records = [], removed = [], mixes = null, eq
     state.mixes = mixes;
     await req(os('meta', 'readwrite').put({ key: 'mixes', value: state.mixes }));
     emit('mixes');
+  }
+  if (history) {
+    state.history = history;
+    await req(os('meta', 'readwrite').put({ key: 'history', value: state.history }));
+    emit('history');
   }
   if (equipment) {
     state.equipment = equipment;
@@ -222,6 +236,7 @@ export async function wipeAll() {
   state.records.clear();
   state.mixes = [];
   state.equipment = [];
+  state.history = [];
   state.settings = { ...DEFAULTS };
   urlCache.clear();
   emit('records');

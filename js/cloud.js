@@ -214,6 +214,7 @@ function attach() {
   hooks.recordDelete = (id) => { if (!on()) return; delete cloud.dirty[`record:${id}`]; cloud.tomb[`record:${id}`] = now(); schedule(); persist(); };
   hooks.photo = (id) => { if (!on()) return; cloud.photoDirty[id] = 1; delete cloud.photoDel[id]; schedule(); persist(); };
   hooks.photoDelete = (id) => { if (!on()) return; delete cloud.photoDirty[id]; cloud.photoDel[id] = 1; schedule(); persist(); };
+  hooks.history = () => { if (!on()) return; cloud.docTs['history:all'] = now(); mark('history:all', cloud.docTs['history:all']); persist(); };
   hooks.equipment = () => { if (!on()) return; cloud.docTs['equipment:all'] = now(); mark('equipment:all', cloud.docTs['equipment:all']); persist(); };
   hooks.mixes = () => { if (!on()) return; cloud.docTs['mixes:all'] = now(); mark('mixes:all', cloud.docTs['mixes:all']); persist(); };
   hooks.prefs = (keys) => { if (!on() || !keys.some((k) => PREF_KEYS.includes(k))) return; cloud.docTs['prefs:all'] = now(); mark('prefs:all', cloud.docTs['prefs:all']); persist(); };
@@ -247,6 +248,7 @@ async function pull() {
     const gone = [];
     let mixes = null;
     let gear = null;
+    let hist = null;
     let prefs = null;
     for (const row of rows) {
       const key = `${row.kind}:${row.id}`;
@@ -283,6 +285,19 @@ async function pull() {
           cloud.dirty[key] = now(); cloud.docTs[key] = now();
         } else if (ts > mine) { mixes = row.data.mixes || []; cloud.docTs[key] = ts; delete cloud.dirty[key]; }
         else if (ts < mine) cloud.dirty[key] = mine;
+      } else if (row.kind === 'history' && row.data) {
+        // One entry a day. Where both sides have a day, the one with more records priced is kept.
+        const ts = row.data.ts || at;
+        const mine = cloud.docTs[key] || 0;
+        const by = new Map((row.data.items || []).map((x) => [x.d, x]));
+        let changed = false;
+        for (const x of state.history) {
+          const o = by.get(x.d);
+          if (!o || (x.priced || 0) > (o.priced || 0) || ((x.priced || 0) === (o.priced || 0) && (x.t || 0) > (o.t || 0))) { by.set(x.d, x); changed = changed || !o || o !== x; }
+        }
+        const merged = [...by.values()].sort((a, b) => (a.d < b.d ? -1 : 1));
+        if (JSON.stringify(merged) !== JSON.stringify(state.history)) hist = merged;
+        if (changed) { cloud.dirty[key] = now(); cloud.docTs[key] = now(); } else if (ts >= mine) { delete cloud.dirty[key]; cloud.docTs[key] = ts; }
       } else if (row.kind === 'equipment' && row.data) {
         const ts = row.data.ts || at;
         const mine = cloud.docTs[key] || 0;
@@ -300,7 +315,7 @@ async function pull() {
         else if (ts < mine) cloud.dirty[key] = mine;
       }
     }
-    if (put.length || gone.length || mixes || gear || prefs) await applyRemote({ records: put, removed: gone, mixes, equipment: gear, prefs });
+    if (put.length || gone.length || mixes || gear || hist || prefs) await applyRemote({ records: put, removed: gone, mixes, equipment: gear, history: hist, prefs });
     const last = rows.length ? rows[rows.length - 1].updated_at : cursor;
     const moved = last !== cursor;
     cursor = last || cursor;
@@ -324,7 +339,8 @@ async function push() {
       const rec = state.records.get(id);
       if (rec) docs.push({ key, ts, row: { user_id: uid, kind, id, data: rec, deleted: false } });
       else delete cloud.dirty[key];
-    } else if (kind === 'equipment') docs.push({ key, ts, row: { user_id: uid, kind, id, data: { ts: cloud.docTs[key] || ts, items: state.equipment }, deleted: false } });
+    } else if (kind === 'history') docs.push({ key, ts, row: { user_id: uid, kind, id, data: { ts: cloud.docTs[key] || ts, items: state.history }, deleted: false } });
+    else if (kind === 'equipment') docs.push({ key, ts, row: { user_id: uid, kind, id, data: { ts: cloud.docTs[key] || ts, items: state.equipment }, deleted: false } });
     else if (kind === 'mixes') docs.push({ key, ts, row: { user_id: uid, kind, id, data: { ts: cloud.docTs[key] || ts, mixes: state.mixes }, deleted: false } });
     else if (kind === 'prefs') docs.push({ key, ts, row: { user_id: uid, kind, id, data: { ts: cloud.docTs[key] || ts, prefs: prefsNow() }, deleted: false } });
   }
@@ -381,6 +397,7 @@ export function syncNow() {
         // First time on this device: everything here is offered to the cloud, and the cloud's newer versions win.
         for (const id of state.records.keys()) cloud.dirty[`record:${id}`] = cloud.dirty[`record:${id}`] || state.records.get(id).updated || now();
         if (state.mixes.length) cloud.dirty['mixes:all'] = cloud.dirty['mixes:all'] || now();
+        if (state.history.length) cloud.dirty['history:all'] = cloud.dirty['history:all'] || now();
         if (state.equipment.length) cloud.dirty['equipment:all'] = cloud.dirty['equipment:all'] || now();
         for (const g of state.equipment) if (g.photo) cloud.photoDirty[g.photo] = 1;
         if (!cloud.docTs['prefs:all']) cloud.dirty['prefs:all'] = now(); // if the cloud has settings already, those win

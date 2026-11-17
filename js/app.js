@@ -16,6 +16,8 @@ import * as stats from './views/stats.js';
 import * as wanted from './views/wanted.js';
 import * as dig from './views/dig.js';
 import * as equipment from './views/equipment.js';
+import * as paid from './views/paid.js';
+import { takeSnapshot } from './history.js';
 import * as cloudsync from './cloud.js';
 import * as spotify from './spotify.js';
 
@@ -33,6 +35,7 @@ const views = {
   wanted,
   dig,
   equipment,
+  paid,
   // A one-tap link that sets up sync on another device: #/cloud/<code>
   cloud: {
     mount(root, args) {
@@ -54,7 +57,7 @@ const views = {
   },
   welcome: { mount: settings.mountWelcome },
 };
-const tabOf = { record: 'library', browse: 'library', mixes: 'library', loved: 'library', stats: 'value', wanted: 'library', dig: 'library', equipment: 'library', welcome: 'settings' };
+const tabOf = { record: 'library', browse: 'library', mixes: 'library', loved: 'library', stats: 'value', wanted: 'library', dig: 'library', equipment: 'library', paid: 'value', welcome: 'settings' };
 
 const view = document.getElementById('view');
 const tabs = document.getElementById('tabs');
@@ -221,6 +224,9 @@ async function boot() {
   drawBar();
   kick();
   cloudsync.start();
+  // A point on the value line each day, taken a moment after opening, and when you return to the app.
+  setTimeout(() => takeSnapshot(true), 8000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => takeSnapshot(), 6000); });
 
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     const had = !!navigator.serviceWorker.controller;

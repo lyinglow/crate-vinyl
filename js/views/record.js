@@ -31,6 +31,7 @@ export function mount(root, args) {
       <div id="r-head"></div>
       <div id="r-status"></div>
       <section class="card" id="r-cond"></section>
+      <section class="card" id="r-paid"></section>
       <section class="card" id="r-value"></section>
       <section id="r-notes"></section>
       <section id="r-listen"></section>
@@ -164,6 +165,35 @@ export function mount(root, args) {
     const sleeveRow = $('#c-sleeve', root);
     bindChips(sleeveRow, pick('sleeveGrade'));
     bindChips($('#c-extra', root), pick('sleeveGrade'));
+  }
+
+  // ------------------------------------------------------ what you paid
+  function drawPaid() {
+    const el = $('#r-paid', root);
+    el.hidden = !!rec.wanted;
+    if (rec.wanted) return;
+    const cur = state.settings.currency;
+    const g = M.gain(rec);
+    const pr = M.profit(rec);
+    let line = '';
+    if (pr) line = `<p class="gainline ${pr.amount >= 0 ? 'up' : 'down'}">Sold for ${esc(M.money(pr.sold, cur))}. ${pr.amount >= 0 ? 'Profit' : 'Loss'} <b>${esc(M.signed(pr.amount, cur))}</b>${pr.pct != null ? ` (${esc(M.pctText(pr.pct))})` : ''}. Discogs fees are not counted.</p>`;
+    else if (g) line = `<p class="gainline ${g.amount >= 0 ? 'up' : 'down'}">Worth about ${esc(M.money(g.now, cur))} now. <b>${esc(M.signed(g.amount, cur))}</b>${g.pct != null ? ` (${esc(M.pctText(g.pct))})` : ''} since you bought it.</p>`;
+    else if (rec.paid != null && rec.paid !== '') line = '<p class="muted">Its value shows here once a price has loaded.</p>';
+    el.innerHTML = `<h3>What you paid</h3>
+      <div class="two">
+        <label class="field"><span>Price paid</span><input id="p-paid" inputmode="decimal" value="${rec.paid == null || rec.paid === '' ? '' : esc(String(rec.paid))}" placeholder="0.00" autocomplete="off"></label>
+        <label class="field"><span>Bought on</span><input id="p-on" type="date" value="${esc(rec.paidOn || '')}"></label>
+      </div>
+      ${line}`;
+    const commit = async () => {
+      const v = $('#p-paid', el).value.replace(/[^0-9.]/g, '');
+      rec.paid = v === '' ? null : Number(v);
+      rec.paidOn = $('#p-on', el).value || '';
+      await save();
+      drawPaid();
+    };
+    $('#p-paid', el).onchange = commit;
+    $('#p-on', el).onchange = commit;
   }
 
   // ------------------------------------------------------ value
@@ -335,7 +365,7 @@ export function mount(root, args) {
   }
 
   function redrawAll() {
-    drawGallery(); drawHead(); drawStatus(); drawCond(); drawValue(); drawNotes(); drawListen(); drawTracks(); drawDetails(); drawActions();
+    drawGallery(); drawHead(); drawStatus(); drawCond(); drawPaid(); drawValue(); drawNotes(); drawListen(); drawTracks(); drawDetails(); drawActions();
   }
   redrawAll();
 

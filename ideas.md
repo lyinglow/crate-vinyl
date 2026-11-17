@@ -61,6 +61,19 @@ Could come next:
 - Pair it with the similar tracks idea above: dig for records that share a tempo and feel with a track you love.
 - Show which labels and artists keep turning up in the results, so you can dig by label.
 
+## Ideas borrowed from finance apps
+
+Built: price paid for every record, gain or loss on each one and for the whole collection, profit on records you sold, a daily value line, and a Movers list. There is a page to fill in what you paid for records you already own.
+
+Could come next:
+- Allocation: where the value sits by genre, decade, label and format, with a warning when a few records hold most of it.
+- Price alerts on the wanted list: set a price you would pay, and flag it when the cheapest copy reaches it. It can only check while the app is open.
+- Net worth: records, equipment and what you still want on one page, with a list for an insurer.
+- A monthly spending budget, and cost per hour of listening for your equipment, using the stylus hours.
+- Records you never play, once there is a play log.
+- Saved filters, like "worth over 40 pounds, bought before 2020".
+- Count Discogs fees in profit. Today profit is what it sold for less what you paid.
+
 ## Spotify: what is built, and what could come next
 
 Built: hearted tracks go to a private **Crate loved** playlist, and any mix can be sent to Spotify. See docs/SETUP.md.
