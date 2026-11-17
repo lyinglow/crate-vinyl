@@ -68,6 +68,13 @@ export function forget() {
   persist();
 }
 
+// The sign in token, for asking your own server for things. Empty if you are not signed in.
+export async function accessToken() {
+  if (!on()) return '';
+  try { await ensureToken(); } catch { return ''; }
+  return cloud.session.access_token;
+}
+
 export const isConfigured = () => !!(cloud.url && cloud.anon);
 export const projectUrl = () => cloud.url;
 

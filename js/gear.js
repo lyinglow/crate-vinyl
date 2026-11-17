@@ -8,7 +8,7 @@ export const DEFAULT_LIFE = 500; // a typical stylus is good for about 500 to 1,
 
 export function newItem(kind = 'Turntable') {
   const now = Date.now();
-  return { id: newId(), kind, name: '', brand: '', model: '', bought: '', price: null, serial: '', notes: '', photo: '', life: DEFAULT_LIFE, hours: 0, fitted: 0, log: [], added: now, updated: now };
+  return { id: newId(), kind, name: '', brand: '', model: '', bought: '', price: null, worth: null, checked: 0, serial: '', notes: '', photo: '', life: DEFAULT_LIFE, hours: 0, fitted: 0, log: [], added: now, updated: now };
 }
 
 export const title = (g) => [g.brand, g.model].filter(Boolean).join(' ') || g.name || g.kind;
@@ -37,5 +37,21 @@ export function newStylus(g) {
   g.updated = Date.now();
 }
 
+// Searches that show what this kind of gear is selling for. Sold listings are the honest guide, because
+// asking prices run high.
+export function searchLinks(g) {
+  const q = [g.brand, g.model].filter(Boolean).join(' ') || g.name || '';
+  const e = encodeURIComponent(q.trim());
+  return [
+    ['Sold on eBay', `https://www.ebay.co.uk/sch/i.html?_nkw=${e}&LH_Sold=1&LH_Complete=1&_sop=13`],
+    ['For sale on eBay', `https://www.ebay.co.uk/sch/i.html?_nkw=${e}&_sop=15`],
+    ['Reverb', `https://reverb.com/marketplace?query=${e}`],
+    ['Google Shopping', `https://www.google.com/search?tbm=shop&q=${e}`],
+  ];
+}
+
+export const STALE_DAYS = 180;
+export const stale = (g) => !!g.checked && Date.now() - g.checked > STALE_DAYS * 864e5;
+export const worthTotal = () => state.equipment.reduce((t, g) => t + (Number(g.worth) || 0), 0);
 export const total = () => state.equipment.reduce((t, g) => t + (Number(g.price) || 0), 0);
 export const byKind = () => KINDS.map((k) => [k, state.equipment.filter((g) => g.kind === k).sort((a, b) => title(a).localeCompare(title(b)))]).filter(([, l]) => l.length);

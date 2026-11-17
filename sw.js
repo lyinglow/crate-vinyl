@@ -1,6 +1,6 @@
 // Keeps the app itself on the phone so it opens fast and works offline.
 // Your records are not here. They live in the phone's database.
-const VERSION = 'crate-1.30.0';
+const VERSION = 'crate-1.32.0';
 const FILES = [
   './',
   'index.html',
@@ -61,6 +61,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Discogs and pictures go straight to the network
+  if (url.pathname.startsWith('/api/')) return; // prices are always asked for fresh
   e.respondWith(
     caches.open(VERSION).then(async (cache) => {
       const hit = await cache.match(req, { ignoreSearch: true });
