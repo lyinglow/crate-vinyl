@@ -128,7 +128,10 @@ export function pickPhoto({ camera = false } = {}) {
 // ---------- sheets ----------
 const openSheets = [];
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && openSheets.length) { e.preventDefault(); openSheets[openSheets.length - 1].close(); }
+  if (e.key !== 'Escape') return;
+  // A panel that has already left the page should not swallow the key.
+  for (let i = openSheets.length - 1; i >= 0; i--) if (!openSheets[i].root.isConnected) openSheets.splice(i, 1);
+  if (openSheets.length) { e.preventDefault(); openSheets[openSheets.length - 1].close(); }
 });
 
 export function openSheet({ title = '', body = '', className = '', onClose } = {}) {
@@ -238,4 +241,11 @@ export function describeError(e) {
   if (!e) return 'Something went wrong.';
   if (e.status === 401) return 'Discogs did not accept your token. Check it in Settings.';
   return e.message || 'Something went wrong.';
+}
+
+// A person as a circle with their initial and a line under the name. Taps through to their page.
+export function circle({ id, name, sub = '', big = false }) {
+  const letter = String(name || '?').trim().charAt(0).toUpperCase() || '?';
+  const h = hue({ artist: name, title: '' });
+  return `<a class="circ${big ? ' big' : ''}" href="#/person/${encodeURIComponent(id)}/${encodeURIComponent(name)}" style="--h:${h}"><span class="av">${esc(letter)}</span><b>${esc(name)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</a>`;
 }

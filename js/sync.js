@@ -48,6 +48,7 @@ function tasksFor(r) {
   if (r.wantDetail && !r.detail) out.push(['detail', 2]);
   if (r.instanceId && r.fieldsDirty && s.username) out.push(['fields', 3]);
   if (needsPrice(r)) out.push(['price', 5]);
+  if (s.fetchCredits !== false && r.detail && r.credits === undefined) out.push(['credits', 6]); // who made it, for the credits circles
   return out.filter(([k]) => !failed.has(`${r.id}:${k}`));
 }
 
@@ -79,6 +80,7 @@ const LABELS = {
   detail: 'Getting pressing details',
   fields: 'Saving your grades to Discogs',
   price: 'Checking prices',
+  credits: 'Getting credits',
 };
 
 export function kick() {
@@ -140,6 +142,9 @@ async function runTask(rec, kind) {
     const rel = await D.release(rec.releaseId, 2);
     M.applyRelease(rec, rel, state.settings.currency);
     if (state.records.has(rec.id)) { await saveRecord(rec, { quiet: true }); if (!rec.wanted) SP.enqueueRecord(rec); } // a new vinyl: its tracks go to Spotify too
+  } else if (kind === 'credits') {
+    const rel = await D.release(rec.releaseId, 3);
+    M.applyCredits(rec, rel);
   } else if (kind === 'fields') {
     await pushFields(rec);
   } else if (kind === 'price') {
@@ -225,6 +230,15 @@ export async function fetchMarket(rec, priority = 5, withStats = false) {
 
 export async function refreshMarket(rec) {
   await fetchMarket(rec, 0, true);
+  await saveRecord(rec, { quiet: true });
+  return rec;
+}
+
+// Credits for one record, when you open it. Records that were saved before credits existed get them here.
+export async function ensureCredits(rec) {
+  if (rec.source !== 'discogs' || !rec.releaseId || rec.credits !== undefined) return rec;
+  const rel = await D.release(rec.releaseId, 0);
+  M.applyCredits(rec, rel);
   await saveRecord(rec, { quiet: true });
   return rec;
 }

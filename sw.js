@@ -1,6 +1,6 @@
 // Keeps the app itself on the phone so it opens fast and works offline.
 // Your records are not here. They live in the phone's database.
-const VERSION = 'crate-1.33.0';
+const VERSION = 'crate-1.34.0';
 const FILES = [
   './',
   'index.html',
@@ -37,6 +37,8 @@ const FILES = [
   'js/views/dig.js',
   'js/views/equipment.js',
   'js/views/paid.js',
+  'js/views/person.js',
+  'js/listen.js',
   'js/views/similar.js',
   'js/views/stats.js',
   'js/views/wanted.js',

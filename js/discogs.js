@@ -149,6 +149,8 @@ export const D = {
   search: (query, page = 1, per = 25) =>
     api('/database/search', { query: { ...query, per_page: per, page }, priority: 0 }),
   release: (id, priority = 1) => api(`/releases/${id}`, { priority }),
+  artist: (id, priority = 0) => api(`/artists/${id}`, { priority }),
+  artistReleases: (id, page = 1, priority = 0) => api(`/artists/${id}/releases`, { query: { sort: 'year', sort_order: 'desc', per_page: 100, page }, priority }),
   versions: (masterId, page = 1, filters = {}) =>
     api(`/masters/${masterId}/versions`, { query: { per_page: 50, page, ...filters }, priority: 0 }),
 

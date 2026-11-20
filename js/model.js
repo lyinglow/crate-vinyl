@@ -196,6 +196,31 @@ export function clock(sec) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
+// Who is credited on a release: the artists, then everyone else (producers, remixers, writers, engineers).
+// The same person with several roles becomes one entry.
+export const shortRole = (role) => String(role || '').replace(/\[[^\]]*\]/g, '').split(',')[0].trim();
+
+export function creditsOf(rel) {
+  const by = new Map();
+  const add = (a, role) => {
+    if (!a || !a.id || !a.name) return;
+    const key = a.id;
+    const cur = by.get(key) || { id: a.id, name: cleanName(a.anv || a.name), roles: [] };
+    const r = shortRole(role);
+    if (r && !cur.roles.includes(r)) cur.roles.push(r);
+    by.set(key, cur);
+  };
+  for (const a of rel.artists || []) add(a, 'Artist');
+  for (const a of rel.extraartists || []) add(a, a.role);
+  for (const t of rel.tracklist || []) for (const a of t.extraartists || []) add(a, a.role);
+  return [...by.values()].slice(0, 60).map((c) => ({ ...c, roles: c.roles.slice(0, 4) }));
+}
+
+export function applyCredits(rec, rel) {
+  rec.artists = (rel.artists || []).filter((a) => a && a.id).map((a) => ({ id: a.id, name: cleanName(a.name) }));
+  rec.credits = creditsOf(rel);
+}
+
 // Fill a record from the full Discogs release page.
 export function applyRelease(rec, rel, currency) {
   rec.artist = artistString(rel.artists) || rec.artist;
@@ -215,6 +240,7 @@ export function applyRelease(rec, rel, currency) {
     rec.formatTags = fi.tags;
     rec.formatText = fi.text;
   }
+  applyCredits(rec, rel);
   rec.tracklist = (rel.tracklist || [])
     .filter((t) => t.type_ === 'track' || t.type_ === 'heading' || t.type_ === 'index')
     .map((t) => ({ position: t.position || '', title: t.title || '', duration: t.duration || '', heading: t.type_ === 'heading' }));

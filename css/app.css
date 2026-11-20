@@ -713,3 +713,15 @@ body.has-bar .stage { height: calc(100dvh - var(--tab-h) - var(--sb) - var(--st)
 
 .pdrow { align-items: center; }
 .pd-in { width: 92px; flex: none; text-align: right; padding: 10px 12px; font-size: 16px; }
+
+/* people as circles, the way Spotify's SongDNA shows them */
+.circles { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; padding: 4px 2px 12px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; scroll-snap-type: x proximity; }
+.circles::-webkit-scrollbar { display: none; }
+.circ { flex: none; width: 92px; text-align: center; color: var(--fg); text-decoration: none; scroll-snap-align: start; }
+.av { display: grid; place-items: center; width: 72px; height: 72px; margin: 0 auto 8px; border-radius: 50%; font-size: 28px; font-weight: 700; color: #fff; background: radial-gradient(circle at 30% 25%, hsl(var(--h, 200) 42% 40%), hsl(var(--h, 200) 40% 20%)); box-shadow: 0 0 0 3px hsl(var(--h, 200) 40% 40% / 0.25), 0 6px 18px rgba(0, 0, 0, 0.18); }
+.av.big { width: 84px; height: 84px; margin: 0; flex: none; font-size: 34px; }
+.circ b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; font-weight: 650; line-height: 1.25; }
+.circ small { display: block; margin-top: 2px; font-size: 12px; color: var(--fg2); line-height: 1.25; }
+.phead { display: flex; align-items: center; gap: 16px; margin: 6px 0 12px; }
+.phead h1 { font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; }
+.profile { color: var(--fg2); font-size: 14px; line-height: 1.45; margin-bottom: 8px; }

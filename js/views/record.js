@@ -1,8 +1,9 @@
 // One record: sleeve, status, condition, value, notes, tracklist, pressing details.
 import { state, saveRecord, deleteRecord, subscribe } from '../store.js';
 import * as M from '../model.js';
-import { refreshMarket, ensureDetail, removeFromCollection, deleteListing, kick, gotIt, removeWanted } from '../sync.js';
+import { refreshMarket, ensureDetail, ensureCredits, removeFromCollection, deleteListing, kick, gotIt, removeWanted } from '../sync.js';
 import { priceLine } from './wanted.js';
+import { circle } from '../ui.js';
 import { esc, icon, openSheet, confirmSheet, toast, chipRow, bindChips, hydratePhotos, describeError, $ } from '../ui.js';
 import { openSellSheet, openSoldSheet } from './sell.js';
 import { openMatchSheet } from './match.js';
@@ -35,6 +36,7 @@ export function mount(root, args) {
       <section class="card" id="r-value"></section>
       <section id="r-notes"></section>
       <section id="r-listen"></section>
+      <section id="r-credits"></section>
       <section id="r-tracks"></section>
       <section id="r-details"></section>
       <section id="r-actions"></section>
@@ -306,6 +308,14 @@ export function mount(root, args) {
     }
   }
 
+  // ------------------------------------------------------ credits
+  function drawCredits() {
+    const el = $('#r-credits', root);
+    const list = rec.credits || [];
+    if (!list.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<h3 class="sec">Credits</h3><div class="circles">${list.slice(0, 30).map((c) => circle({ id: c.id, name: c.name, sub: c.roles.join(', ') })).join('')}</div>`;
+  }
+
   // ------------------------------------------------------ details
   function drawDetails() {
     const rows = [];
@@ -365,7 +375,7 @@ export function mount(root, args) {
   }
 
   function redrawAll() {
-    drawGallery(); drawHead(); drawStatus(); drawCond(); drawPaid(); drawValue(); drawNotes(); drawListen(); drawTracks(); drawDetails(); drawActions();
+    drawGallery(); drawHead(); drawStatus(); drawCond(); drawPaid(); drawValue(); drawNotes(); drawListen(); drawCredits(); drawTracks(); drawDetails(); drawActions();
   }
   redrawAll();
 
@@ -382,6 +392,10 @@ export function mount(root, args) {
         await ensureDetail(rec);
         if (!alive) return;
         drawGallery(); drawHead(); drawListen(); drawTracks(); drawDetails(); drawValue();
+      }
+      if (rec.source === 'discogs' && rec.releaseId && rec.credits === undefined) {
+        try { await ensureCredits(rec); } catch { /* offline: no credits yet */ }
+        if (alive) drawCredits();
       }
       if (!rec.wanted && featWaiting(rec).length) {
         await fetchProfiles({ rec });

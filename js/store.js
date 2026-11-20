@@ -31,6 +31,7 @@ export const DEFAULTS = {
   autoSpin: 2,
   digPassed: [],
   digHeard: {},
+  fetchCredits: true,
   spotifyPlaylists: {},
   spotifyQueue: [],
 };
